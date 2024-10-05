@@ -1,11 +1,12 @@
 // ==UserScript==
 // @name         Audio Control Highlighter and Replay
 // @namespace    http://tampermonkey.net/
-// @version      1.010
-// @description  Highlights the first audio control, adds a customizable hotkey to replay
+// @version      1.014
+// @description  Highlights audio controls and buttons, adds customizable hotkeys for replay and button click
 // @author       You
 // @match        https://www.remnote.com/*
 // @match        https://d1-tutorial.rex-zhasm6886.workers.dev/*
+// @match        https://www.duolingo.com/lesson*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=workers.dev
 // @grant        GM_getValue
 // @grant        GM_setValue
@@ -32,36 +33,47 @@
         .AudioVideoNode audio {
             border: 1px solid #ff003c !important;
             border-radius: 8px !important;
-            padding-top: 4px !important;
-            padding-bottom: 4px !important;
-            padding-left: 0px !important;
-            padding-right: 0px !important;
+            padding: 4px !important;
             background-color: #f0f8ff !important;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
             transition: all 0.3s ease !important;
             width: 300px !important;
+            max-width: 100% !important;
             display: block !important;
         }
         .AudioVideoNode audio:hover {
             box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
         }
+        span[dir="ltr"] button {
+            border: 2px solid #4a90e2 !important;
+            border-radius: 4px !important;
+            background-color: #e6f3ff !important;
+            color: #4a90e2 !important;
+            font-weight: bold !important;
+            padding: 6px 12px !important;
+            transition: all 0.3s ease !important;
+            cursor: pointer !important;
+        }
+        span[dir="ltr"] button:hover {
+            background-color: #4a90e2 !important;
+            color: white !important;
+        }
     `);
 
     function highlightAudioControl(audioElement) {
-        console.log('[APH-MK][highlightAudioControl:54] Attempting to highlight audio control');
+        console.log('[APH-MK][highlightAudioControl:60] Attempting to highlight audio control');
         if (audioElement) {
-            // Styles are now applied via CSS, no need for inline styles
-            console.log('[APH-MK][highlightAudioControl:57] Audio control found and highlighted');
+            console.log('[APH-MK][highlightAudioControl:62] Audio control found and highlighted');
             return audioElement;
         }
-        console.log('[APH-MK][highlightAudioControl:60] No audio control found');
+        console.log('[APH-MK][highlightAudioControl:65] No audio control found');
         return null;
     }
 
     function replayAudio(audioElement) {
-        console.log('[APH-MK][replayAudio:55] Attempting to replay audio');
+        console.log('[APH-MK][replayAudio:69] Attempting to replay audio');
         if (audioElement) {
-            console.log('[APH-MK][replayAudio:57] Audio element details:', {
+            console.log('[APH-MK][replayAudio:71] Audio element details:', {
                 src: audioElement.src,
                 paused: audioElement.paused,
                 currentTime: audioElement.currentTime,
@@ -71,40 +83,32 @@
             const playPromise = audioElement.play();
             if (playPromise !== undefined) {
                 playPromise.then(_ => {
-                    console.log('[APH-MK][replayAudio:67] Audio playback started successfully');
+                    console.log('[APH-MK][replayAudio:81] Audio playback started successfully');
                 }).catch(error => {
-                    console.log('[APH-MK][replayAudio:69] Audio playback failed:', error);
+                    console.log('[APH-MK][replayAudio:83] Audio playback failed:', error);
                 });
             }
         } else {
-            console.log('[APH-MK][replayAudio:73] No audio element to replay');
+            console.log('[APH-MK][replayAudio:87] No audio element to replay');
         }
     }
 
     function handleHotkey(event) {
         const audioElement = document.querySelector('audio');
-        console.log('[APH-MK][handleHotkey:78] Key pressed:', event.key, 'KeyCode:', event.keyCode, 'Which:', event.which, 'Code:', event.code, 'Audio element:', audioElement ? 'Captured' : 'Not found');
+        const button = document.querySelector('span[dir="ltr"] button');
+        console.log('[APH-MK][handleHotkey:101] Key pressed:', event.key, 'Ctrl:', event.ctrlKey, 'Audio:', audioElement ? 'Found' : 'Not found', 'Button:', button ? 'Found' : 'Not found');
 
-        if (event.ctrlKey === hotkey.ctrlKey &&
-            event.altKey === hotkey.altKey &&
-            event.metaKey === hotkey.metaKey &&
-            event.shiftKey === hotkey.shiftKey &&
-            event.key.toLowerCase() === hotkey.key.toLowerCase()) {
-            console.log('[APH-MK][handleHotkey:86] Hotkey detected');
+        if (event.ctrlKey){
+            console.log('[APH-MK][handleHotkey:104] Ctrl key detected');
             event.preventDefault();
             if (audioElement) {
-                console.log('[APH-MK][handleHotkey:89] Audio control information:', {
-                    outerHTML: audioElement.outerHTML,
-                    src: audioElement.src,
-                    currentTime: audioElement.currentTime,
-                    duration: audioElement.duration,
-                    paused: audioElement.paused,
-                    volume: audioElement.volume,
-                    muted: audioElement.muted
-                });
+                console.log('[APH-MK][handleHotkey:107] Replaying audio');
                 replayAudio(audioElement);
+            } else if (button) {
+                console.log('[APH-MK][handleHotkey:110] Clicking button');
+                button.click();
             } else {
-                console.log('[APH-MK][handleHotkey:100] No audio element found');
+                console.log('[APH-MK][handleHotkey:113] No audio or button found');
             }
         }
     }
@@ -145,5 +149,5 @@
     // Set the initial hotkey
     setNewHotkey(defaultHotkey);
 
-    console.log('[APH-MK][anonymous:121] Script setup complete');
+    console.log('[APH-MK][anonymous:131] Script setup complete');
 })();
