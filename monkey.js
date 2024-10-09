@@ -1,12 +1,13 @@
 // ==UserScript==
 // @name         Audio Control Highlighter and Replay
 // @namespace    http://tampermonkey.net/
-// @version      1.014
+// @version      1.017
 // @description  Highlights audio controls and buttons, adds customizable hotkeys for replay and button click
 // @author       You
 // @match        https://www.remnote.com/*
 // @match        https://d1-tutorial.rex-zhasm6886.workers.dev/*
 // @match        https://www.duolingo.com/lesson*
+// @match        https://www.collinsdictionary.com/dictionary/french-english/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=workers.dev
 // @grant        GM_getValue
 // @grant        GM_setValue
@@ -30,8 +31,13 @@
 
     // Add custom CSS
     GM_addStyle(`
+
+        .AudioVideoNode {
+            margin-right: 18px;
+        }
+
         .AudioVideoNode audio {
-            border: 1px solid #ff003c !important;
+            border: 1px solid green !important; /*#ff003c*/
             border-radius: 8px !important;
             padding: 4px !important;
             background-color: #f0f8ff !important;
@@ -151,3 +157,69 @@
 
     console.log('[APH-MK][anonymous:131] Script setup complete');
 })();
+
+// Add new site match for Collins Dictionary French-English
+if (window.location.href.match(/https:\/\/www\.collinsdictionary\.com\/dictionary\/french-english/)) {
+    const pronunciationDivs = document.querySelectorAll('div.mini_h2.form');
+
+    pronunciationDivs.forEach(div => {
+        const span = div.querySelector('span.pron');
+        const audioLink = div.querySelector('a[data-src-mp3]');
+
+        if (span && audioLink) {
+            // Highlight span when clicking the div
+            div.addEventListener('click', () => {
+                span.style.backgroundColor = 'yellow';
+                setTimeout(() => {
+                    span.style.backgroundColor = '';
+                }, 1000);
+            });
+
+            // Copy mp3 URL to clipboard when clicking the span
+            span.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const mp3Url = audioLink.getAttribute('data-src-mp3');
+                const pronText = span.textContent.trim();
+                navigator.clipboard.writeText(mp3Url).then(() => {
+                    console.log('MP3 URL copied to clipboard');
+                    showNotification(`[${pronText}]'s MP3 URL copied to clipboard`);
+                }).catch(err => {
+                    console.error('Failed to copy MP3 URL: ', err);
+                    showNotification(`Failed to copy [${pronText}]'s MP3 URL`);
+                });
+            });
+        }
+    });
+}
+
+// Function to show notification
+function showNotification(message) {
+    const notification = document.createElement('div');
+    notification.textContent = message;
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background-color: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 10px 20px;
+        border-radius: 5px;
+        z-index: 9999;
+        opacity: 0;
+        transition: opacity 0.3s ease-in-out;
+    `;
+    document.body.appendChild(notification);
+
+    // Fade in
+    setTimeout(() => {
+        notification.style.opacity = '1';
+    }, 10);
+
+    // Fade out and remove
+    setTimeout(() => {
+        notification.style.opacity = '0';
+        setTimeout(() => {
+            document.body.removeChild(notification);
+        }, 300);
+    }, 2000);
+}
