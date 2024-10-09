@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Audio Control Highlighter and Replay
 // @namespace    http://tampermonkey.net/
-// @version      1.017
+// @version      1.018
 // @description  Highlights audio controls and buttons, adds customizable hotkeys for replay and button click
 // @author       You
 // @match        https://www.remnote.com/*
@@ -38,7 +38,7 @@
 
         .AudioVideoNode audio {
             border: 1px solid green !important; /*#ff003c*/
-            border-radius: 8px !important;
+            border-radius: 8px !important;¬
             padding: 4px !important;
             background-color: #f0f8ff !important;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
@@ -160,26 +160,24 @@
 
 // Add new site match for Collins Dictionary French-English
 if (window.location.href.match(/https:\/\/www\.collinsdictionary\.com\/dictionary\/french-english/)) {
-    const pronunciationDivs = document.querySelectorAll('div.mini_h2.form');
+    const pronunciationElements = document.querySelectorAll('div.mini_h2.form, span.form.type-phr');
 
-    pronunciationDivs.forEach(div => {
-        const span = div.querySelector('span.pron');
-        const audioLink = div.querySelector('a[data-src-mp3]');
+    pronunciationElements.forEach(element => {
+        const pronSpan = element.querySelector('span.pron') || element.querySelector('span.orth');
+        const audioLink = element.querySelector('a[data-src-mp3]');
 
-        if (span && audioLink) {
-            // Highlight span when clicking the div
-            div.addEventListener('click', () => {
-                span.style.backgroundColor = 'yellow';
-                setTimeout(() => {
-                    span.style.backgroundColor = '';
-                }, 1000);
+        if (pronSpan && audioLink) {
+            // Highlight span when clicking the element
+            element.addEventListener('click', () => {
+                pronSpan.style.backgroundColor = 'yellow';
+                setTimeout(() => { pronSpan.style.backgroundColor = ''; }, 1000);
             });
 
             // Copy mp3 URL to clipboard when clicking the span
-            span.addEventListener('click', (e) => {
+            pronSpan.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const mp3Url = audioLink.getAttribute('data-src-mp3');
-                const pronText = span.textContent.trim();
+                const pronText = pronSpan.textContent.trim();
                 navigator.clipboard.writeText(mp3Url).then(() => {
                     console.log('MP3 URL copied to clipboard');
                     showNotification(`[${pronText}]'s MP3 URL copied to clipboard`);
