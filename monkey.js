@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Audio Control Highlighter and Replay
 // @namespace    http://tampermonkey.net/
-// @version      1.018
+// @version      1.019
 // @description  Highlights audio controls and buttons, adds customizable hotkeys for replay and button click
 // @author       You
 // @match        https://www.remnote.com/*
@@ -173,17 +173,26 @@ if (window.location.href.match(/https:\/\/www\.collinsdictionary\.com\/dictionar
                 setTimeout(() => { pronSpan.style.backgroundColor = ''; }, 1000);
             });
 
-            // Copy mp3 URL to clipboard when clicking the span
+            // Copy mp3 URL and text when clicking the span
             pronSpan.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const mp3Url = audioLink.getAttribute('data-src-mp3');
-                const pronText = pronSpan.textContent.trim();
-                navigator.clipboard.writeText(mp3Url).then(() => {
-                    console.log('MP3 URL copied to clipboard');
-                    showNotification(`[${pronText}]'s MP3 URL copied to clipboard`);
+                let pronText = pronSpan.textContent.trim();
+
+                // Check for punctuation spans and include them if present
+                const punctuationSpans = element.querySelectorAll('span.punctuation');
+                if (punctuationSpans.length === 2) {
+                    pronText = `${punctuationSpans[0].textContent.trim()}${pronText}${punctuationSpans[1].textContent.trim()}`;
+                }
+
+                const copyText = `${mp3Url}`;
+
+                navigator.clipboard.writeText(copyText).then(() => {
+                    console.log('Pronunciation and MP3 URL copied to clipboard');
+                    showNotification(`${pronText}'s pronunciation and MP3 URL copied to clipboard`);
                 }).catch(err => {
-                    console.error('Failed to copy MP3 URL: ', err);
-                    showNotification(`Failed to copy [${pronText}]'s MP3 URL`);
+                    console.error('Failed to copy pronunciation and MP3 URL: ', err);
+                    showNotification(`Failed to copy ${pronText}'s pronunciation and MP3 URL`);
                 });
             });
         }
