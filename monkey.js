@@ -1,12 +1,11 @@
 // ==UserScript==
 // @name         Audio Control Highlighter and Replay
 // @namespace    http://tampermonkey.net/
-// @version      1.019
+// @version      1.020
 // @description  Highlights audio controls and buttons, adds customizable hotkeys for replay and button click
-// @author       You
+// @author       Me
 // @match        https://www.remnote.com/*
-// @match        https://d1-tutorial.rex-zhasm6886.workers.dev/*
-// @match        https://www.duolingo.com/lesson*
+// @match        https://www.duolingo.com/*
 // @match        https://www.collinsdictionary.com/dictionary/french-english/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=workers.dev
 // @grant        GM_getValue
