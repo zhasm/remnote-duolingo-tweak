@@ -101,7 +101,6 @@
     function handleHotkey(event) {
         const audioElement = document.querySelector('audio');
         const button = document.querySelector('span[dir="ltr"] button');
-        console.log('[APH-MK][handleHotkey:101] Key pressed:', event.key, 'Ctrl:', event.ctrlKey, 'Audio:', audioElement ? 'Found' : 'Not found', 'Button:', button ? 'Found' : 'Not found');
 
         if (event.ctrlKey){
             console.log('[APH-MK][handleHotkey:104] Ctrl key detected');
