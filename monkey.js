@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Audio Control Highlighter and Replay
 // @namespace    http://tampermonkey.net/
-// @version      1.027
+// @version      1.028
 // @description  Highlights audio controls and buttons, adds customizable hotkeys for replay and button click
 // @author       Me
 // @match        https://www.remnote.com/*
@@ -69,7 +69,7 @@
             box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
         }
         span[dir="ltr"] button {
-            border: 2px solid #4a90e2 !important;
+            border: 2px solid #ff003c !important;
             border-radius: 4px !important;
             background-color: #e6f3ff !important;
             color: #4a90e2 !important;
