@@ -1,16 +1,18 @@
 // ==UserScript==
 // @name         Audio Control Highlighter and Replay
 // @namespace    http://tampermonkey.net/
-// @version      1.022
+// @version      1.023
 // @description  Highlights audio controls and buttons, adds customizable hotkeys for replay and button click
 // @author       Me
 // @match        https://www.remnote.com/*
 // @match        https://www.duolingo.com/*
+// @match        https://tts-v3.pages.dev/*
 // @match        https://www.collinsdictionary.com/dictionary/french-english/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=workers.dev
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_addStyle
+// @grant        GM_registerMenuCommand
 // ==/UserScript==
 
 (function() {
@@ -99,12 +101,23 @@
     }
 
     function handleHotkey(event) {
-        const audioElement = document.querySelector('audio');
-        const button = document.querySelector('span[dir="ltr"] button');
+        // Skip if no hotkey is configured
+        if (!hotkey.key && !hotkey.ctrlKey && !hotkey.altKey &&
+            !hotkey.metaKey && !hotkey.shiftKey) {
+            return;
+        }
 
-        if (event.ctrlKey){
-            console.log('[APH-MK][handleHotkey:104] Ctrl key detected');
-            event.preventDefault();
+        // Check if the event matches the configured hotkey
+        if ((hotkey.key ? event.key.toLowerCase() === hotkey.key.toLowerCase() : true) &&
+            event.ctrlKey === hotkey.ctrlKey &&
+            event.altKey === hotkey.altKey &&
+            event.metaKey === hotkey.metaKey &&
+            event.shiftKey === hotkey.shiftKey) {
+
+            console.log('[APH-MK][handleHotkey:104] Hotkey detected');
+            const audioElement = document.querySelector('audio');
+            const button = document.querySelector('span[dir="ltr"] button');
+
             if (audioElement) {
                 console.log('[APH-MK][handleHotkey:107] Replaying audio');
                 replayAudio(audioElement);
@@ -152,6 +165,94 @@
 
     // Set the initial hotkey
     setNewHotkey(defaultHotkey);
+
+    // Move these functions inside the IIFE
+    function promptForHotkey() {
+        // Create dialog elements
+        const dialog = document.createElement('div');
+        dialog.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 10000;
+            min-width: 300px;
+        `;
+
+        const content = `
+            <h3 style="margin-top: 0;">Configure Hotkey</h3>
+            <div style="margin-bottom: 15px;">
+                <label>Key: <input type="text" id="hotkeyChar" maxlength="1" value="${hotkey.key}" style="width: 30px;"></label>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label><input type="checkbox" id="hotkeyCtrl" ${hotkey.ctrlKey ? 'checked' : ''}> Ctrl</label>
+                <label style="margin-left: 10px;"><input type="checkbox" id="hotkeyAlt" ${hotkey.altKey ? 'checked' : ''}> Alt</label>
+                <label style="margin-left: 10px;"><input type="checkbox" id="hotkeyShift" ${hotkey.shiftKey ? 'checked' : ''}> Shift</label>
+                <label style="margin-left: 10px;"><input type="checkbox" id="hotkeyMeta" ${hotkey.metaKey ? 'checked' : ''}> Meta</label>
+            </div>
+            <div style="text-align: right;">
+                <button id="hotkeySave" style="margin-right: 10px;">Save</button>
+                <button id="hotkeyCancel">Cancel</button>
+            </div>
+        `;
+
+        dialog.innerHTML = content;
+        document.body.appendChild(dialog);
+
+        // Add event listeners
+        const saveBtn = dialog.querySelector('#hotkeySave');
+        const cancelBtn = dialog.querySelector('#hotkeyCancel');
+        const charInput = dialog.querySelector('#hotkeyChar');
+
+        saveBtn.addEventListener('click', () => {
+            const newHotkey = {
+                key: charInput.value.toLowerCase(),
+                ctrlKey: dialog.querySelector('#hotkeyCtrl').checked,
+                altKey: dialog.querySelector('#hotkeyAlt').checked,
+                metaKey: dialog.querySelector('#hotkeyMeta').checked,
+                shiftKey: dialog.querySelector('#hotkeyShift').checked
+            };
+
+            // Validate that at least one modifier or key is set
+            if (!newHotkey.key && !newHotkey.ctrlKey && !newHotkey.altKey &&
+                !newHotkey.metaKey && !newHotkey.shiftKey) {
+                alert('Please set at least one key or modifier');
+                return;
+            }
+
+            setNewHotkey(newHotkey);
+            document.body.removeChild(dialog);
+
+            // Show confirmation
+            const modifiers = [
+                newHotkey.ctrlKey ? 'Ctrl' : '',
+                newHotkey.altKey ? 'Alt' : '',
+                newHotkey.shiftKey ? 'Shift' : '',
+                newHotkey.metaKey ? 'Meta' : ''
+            ].filter(Boolean).join('+');
+
+            const hotkeyStr = modifiers + (modifiers && newHotkey.key ? '+' : '') + newHotkey.key;
+            showNotification(`Hotkey set to: ${hotkeyStr || 'None'}`);
+        });
+
+        cancelBtn.addEventListener('click', () => {
+            document.body.removeChild(dialog);
+        });
+
+        // Allow only single character input
+        charInput.addEventListener('input', (e) => {
+            if (e.target.value.length > 1) {
+                e.target.value = e.target.value.slice(-1);
+            }
+        });
+    }
+
+    // Register menu command inside the IIFE
+    GM_registerMenuCommand('Configure Audio Replay Hotkey', promptForHotkey);
 
     console.log('[APH-MK][anonymous:131] Script setup complete');
 })();
