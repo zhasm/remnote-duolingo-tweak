@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Audio Control Highlighter and Replay
 // @namespace    http://tampermonkey.net/
-// @version      1.025
+// @version      1.026
 // @description  Highlights audio controls and buttons, adds customizable hotkeys for replay and button click
 // @author       Me
 // @match        https://www.remnote.com/*
@@ -25,7 +25,15 @@
         DEBUG: 4
     };
 
-    let currentLogLevel = GM_getValue('logLevel', LOG_LEVELS.INFO); // Default to INFO level
+    let currentLogLevel = GM_getValue('logLevel', LOG_LEVELS.INFO);
+
+    // Add logging utility function
+    function log(level, ...args) {
+        if (level <= currentLogLevel) {
+            const levelName = Object.keys(LOG_LEVELS).find(key => LOG_LEVELS[key] === level);
+            console.log(`[APH-MK][${levelName}]`, ...args);
+        }
+    }
 
     log(LOG_LEVELS.INFO, 'Script loaded');
 
@@ -280,85 +288,77 @@
     GM_registerMenuCommand('Configure Audio Replay Hotkey', promptForHotkey);
 
     log(LOG_LEVELS.INFO, 'Script setup complete');
-})();
 
-// Add new site match for Collins Dictionary French-English
-if (window.location.href.match(/https:\/\/www\.collinsdictionary\.com\/dictionary\/french-english/)) {
-    const pronunciationElements = document.querySelectorAll('div.mini_h2.form, span.form.type-phr');
+    // Move Collins Dictionary code inside IIFE
+    if (window.location.href.match(/https:\/\/www\.collinsdictionary\.com\/dictionary\/french-english/)) {
+        const pronunciationElements = document.querySelectorAll('div.mini_h2.form, span.form.type-phr');
 
-    pronunciationElements.forEach(element => {
-        const pronSpan = element.querySelector('span.pron') || element.querySelector('span.orth');
-        const audioLink = element.querySelector('a[data-src-mp3]');
+        pronunciationElements.forEach(element => {
+            const pronSpan = element.querySelector('span.pron') || element.querySelector('span.orth');
+            const audioLink = element.querySelector('a[data-src-mp3]');
 
-        if (pronSpan && audioLink) {
-            // Highlight span when clicking the element
-            element.addEventListener('click', () => {
-                pronSpan.style.backgroundColor = 'yellow';
-                setTimeout(() => { pronSpan.style.backgroundColor = ''; }, 1000);
-            });
-
-            // Copy mp3 URL and text when clicking the span
-            pronSpan.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const mp3Url = audioLink.getAttribute('data-src-mp3');
-                let pronText = pronSpan.textContent.trim();
-
-                // Check for punctuation spans and include them if present
-                const punctuationSpans = element.querySelectorAll('span.punctuation');
-                if (punctuationSpans.length === 2) {
-                    pronText = `${punctuationSpans[0].textContent.trim()}${pronText}${punctuationSpans[1].textContent.trim()}`;
-                }
-
-                const copyText = `${mp3Url}`;
-
-                navigator.clipboard.writeText(copyText).then(() => {
-                    log(LOG_LEVELS.INFO, 'Pronunciation and MP3 URL copied to clipboard');
-                    showNotification(`${pronText}'s pronunciation and MP3 URL copied to clipboard`);
-                }).catch(err => {
-                    log(LOG_LEVELS.ERROR, 'Failed to copy pronunciation and MP3 URL: ', err);
-                    showNotification(`Failed to copy ${pronText}'s pronunciation and MP3 URL`);
+            if (pronSpan && audioLink) {
+                // Highlight span when clicking the element
+                element.addEventListener('click', () => {
+                    pronSpan.style.backgroundColor = 'yellow';
+                    setTimeout(() => { pronSpan.style.backgroundColor = ''; }, 1000);
                 });
-            });
-        }
-    });
-}
 
-// Function to show notification
-function showNotification(message) {
-    const notification = document.createElement('div');
-    notification.textContent = message;
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background-color: rgba(0, 0, 0, 0.7);
-        color: white;
-        padding: 10px 20px;
-        border-radius: 5px;
-        z-index: 9999;
-        opacity: 0;
-        transition: opacity 0.3s ease-in-out;
-    `;
-    document.body.appendChild(notification);
+                // Copy mp3 URL and text when clicking the span
+                pronSpan.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const mp3Url = audioLink.getAttribute('data-src-mp3');
+                    let pronText = pronSpan.textContent.trim();
 
-    // Fade in
-    setTimeout(() => {
-        notification.style.opacity = '1';
-    }, 10);
+                    // Check for punctuation spans and include them if present
+                    const punctuationSpans = element.querySelectorAll('span.punctuation');
+                    if (punctuationSpans.length === 2) {
+                        pronText = `${punctuationSpans[0].textContent.trim()}${pronText}${punctuationSpans[1].textContent.trim()}`;
+                    }
 
-    // Fade out and remove
-    setTimeout(() => {
-        notification.style.opacity = '0';
-        setTimeout(() => {
-            document.body.removeChild(notification);
-        }, 300);
-    }, 2000);
-}
+                    const copyText = `${mp3Url}`;
 
-// Add logging utility function
-function log(level, ...args) {
-    if (level <= currentLogLevel) {
-        const levelName = Object.keys(LOG_LEVELS).find(key => LOG_LEVELS[key] === level);
-        console.log(`[APH-MK][${levelName}]`, ...args);
+                    navigator.clipboard.writeText(copyText).then(() => {
+                        log(LOG_LEVELS.INFO, 'Pronunciation and MP3 URL copied to clipboard');
+                        showNotification(`${pronText}'s pronunciation and MP3 URL copied to clipboard`);
+                    }).catch(err => {
+                        log(LOG_LEVELS.ERROR, 'Failed to copy pronunciation and MP3 URL: ', err);
+                        showNotification(`Failed to copy ${pronText}'s pronunciation and MP3 URL`);
+                    });
+                });
+            }
+        });
     }
-}
+
+    // Function to show notification
+    function showNotification(message) {
+        const notification = document.createElement('div');
+        notification.textContent = message;
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            z-index: 9999;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+        `;
+        document.body.appendChild(notification);
+
+        // Fade in
+        setTimeout(() => {
+            notification.style.opacity = '1';
+        }, 10);
+
+        // Fade out and remove
+        setTimeout(() => {
+            notification.style.opacity = '0';
+            setTimeout(() => {
+                document.body.removeChild(notification);
+            }, 300);
+        }, 2000);
+    }
+})();
