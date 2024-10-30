@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Audio Control Highlighter and Replay
 // @namespace    http://tampermonkey.net/
-// @version      1.024
+// @version      1.025
 // @description  Highlights audio controls and buttons, adds customizable hotkeys for replay and button click
 // @author       Me
 // @match        https://www.remnote.com/*
@@ -18,7 +18,16 @@
 (function() {
     'use strict';
 
-    console.log('[APH-MK][anonymous:18] Script loaded');
+    const LOG_LEVELS = {
+        ERROR: 1,
+        WARN: 2,
+        INFO: 3,
+        DEBUG: 4
+    };
+
+    let currentLogLevel = GM_getValue('logLevel', LOG_LEVELS.INFO); // Default to INFO level
+
+    log(LOG_LEVELS.INFO, 'Script loaded');
 
     // Customizable hotkey (default to Control+A)
     const defaultHotkey = {
@@ -68,19 +77,19 @@
     `);
 
     function highlightAudioControl(audioElement) {
-        console.log('[APH-MK][highlightAudioControl:60] Attempting to highlight audio control');
+        log(LOG_LEVELS.DEBUG, 'Attempting to highlight audio control');
         if (audioElement) {
-            console.log('[APH-MK][highlightAudioControl:62] Audio control found and highlighted');
+            log(LOG_LEVELS.INFO, 'Audio control found and highlighted');
             return audioElement;
         }
-        console.log('[APH-MK][highlightAudioControl:65] No audio control found');
+        log(LOG_LEVELS.WARN, 'No audio control found');
         return null;
     }
 
     function replayAudio(audioElement) {
-        console.log('[APH-MK][replayAudio:69] Attempting to replay audio');
+        log(LOG_LEVELS.DEBUG, 'Attempting to replay audio');
         if (audioElement) {
-            console.log('[APH-MK][replayAudio:71] Audio element details:', {
+            log(LOG_LEVELS.DEBUG, 'Audio element details:', {
                 src: audioElement.src,
                 paused: audioElement.paused,
                 currentTime: audioElement.currentTime,
@@ -90,13 +99,13 @@
             const playPromise = audioElement.play();
             if (playPromise !== undefined) {
                 playPromise.then(_ => {
-                    console.log('[APH-MK][replayAudio:81] Audio playback started successfully');
+                    log(LOG_LEVELS.INFO, 'Audio playback started successfully');
                 }).catch(error => {
-                    console.log('[APH-MK][replayAudio:83] Audio playback failed:', error);
+                    log(LOG_LEVELS.ERROR, 'Audio playback failed:', error);
                 });
             }
         } else {
-            console.log('[APH-MK][replayAudio:87] No audio element to replay');
+            log(LOG_LEVELS.WARN, 'No audio element to replay');
         }
     }
 
@@ -113,18 +122,18 @@
             event.metaKey === hotkey.metaKey &&
             event.shiftKey === hotkey.shiftKey) {
 
-            console.log('[APH-MK][handleHotkey:104] Hotkey detected');
+            log(LOG_LEVELS.DEBUG, 'Hotkey detected');
             const audioElement = document.querySelector('audio');
             const button = document.querySelector('span[dir="ltr"] button');
 
             if (audioElement) {
-                console.log('[APH-MK][handleHotkey:107] Replaying audio');
+                log(LOG_LEVELS.INFO, 'Replaying audio');
                 replayAudio(audioElement);
             } else if (button) {
-                console.log('[APH-MK][handleHotkey:110] Clicking button');
+                log(LOG_LEVELS.INFO, 'Clicking button');
                 button.click();
             } else {
-                console.log('[APH-MK][handleHotkey:113] No audio or button found');
+                log(LOG_LEVELS.WARN, 'No audio or button found');
             }
         }
     }
@@ -148,7 +157,7 @@
 
     // Set up the audio control when it appears
     waitForAudioElement().then((audioElement) => {
-        console.log('[APH-MK][anonymous:108] Audio element found');
+        log(LOG_LEVELS.INFO, 'Audio element found');
         highlightAudioControl(audioElement);
     });
 
@@ -159,7 +168,7 @@
     function setNewHotkey(newHotkey) {
         hotkey = newHotkey;
         GM_setValue('audioReplayHotkey', newHotkey);
-        console.log('[APH-MK][setNewHotkey:116] New hotkey set:', newHotkey);
+        log(LOG_LEVELS.INFO, 'New hotkey set:', newHotkey);
     }
 
     // Instead, only set the default if no hotkey exists
@@ -185,8 +194,9 @@
         `;
 
         const content = `
-            <h3 style="margin-top: 0;">Configure Hotkey</h3>
+            <h3 style="margin-top: 0;">Script Configuration</h3>
             <div style="margin-bottom: 15px;">
+                <h4 style="margin: 10px 0;">Hotkey Settings</h4>
                 <label>Key: <input type="text" id="hotkeyChar" maxlength="1" value="${hotkey.key}" style="width: 30px;"></label>
             </div>
             <div style="margin-bottom: 15px;">
@@ -195,9 +205,18 @@
                 <label style="margin-left: 10px;"><input type="checkbox" id="hotkeyShift" ${hotkey.shiftKey ? 'checked' : ''}> Shift</label>
                 <label style="margin-left: 10px;"><input type="checkbox" id="hotkeyMeta" ${hotkey.metaKey ? 'checked' : ''}> Meta</label>
             </div>
+            <div style="margin-bottom: 15px;">
+                <h4 style="margin: 10px 0;">Log Level</h4>
+                <select id="logLevel">
+                    <option value="${LOG_LEVELS.ERROR}" ${currentLogLevel === LOG_LEVELS.ERROR ? 'selected' : ''}>Error Only</option>
+                    <option value="${LOG_LEVELS.WARN}" ${currentLogLevel === LOG_LEVELS.WARN ? 'selected' : ''}>Warning & Error</option>
+                    <option value="${LOG_LEVELS.INFO}" ${currentLogLevel === LOG_LEVELS.INFO ? 'selected' : ''}>Info & Above</option>
+                    <option value="${LOG_LEVELS.DEBUG}" ${currentLogLevel === LOG_LEVELS.DEBUG ? 'selected' : ''}>Debug (All)</option>
+                </select>
+            </div>
             <div style="text-align: right;">
-                <button id="hotkeySave" style="margin-right: 10px;">Save</button>
-                <button id="hotkeyCancel">Cancel</button>
+                <button id="configSave" style="margin-right: 10px;">Save</button>
+                <button id="configCancel">Cancel</button>
             </div>
         `;
 
@@ -205,9 +224,10 @@
         document.body.appendChild(dialog);
 
         // Add event listeners
-        const saveBtn = dialog.querySelector('#hotkeySave');
-        const cancelBtn = dialog.querySelector('#hotkeyCancel');
+        const saveBtn = dialog.querySelector('#configSave');
+        const cancelBtn = dialog.querySelector('#configCancel');
         const charInput = dialog.querySelector('#hotkeyChar');
+        const logLevelSelect = dialog.querySelector('#logLevel');
 
         saveBtn.addEventListener('click', () => {
             const newHotkey = {
@@ -218,14 +238,18 @@
                 shiftKey: dialog.querySelector('#hotkeyShift').checked
             };
 
-            // Validate that at least one modifier or key is set
+            // Validate hotkey
             if (!newHotkey.key && !newHotkey.ctrlKey && !newHotkey.altKey &&
                 !newHotkey.metaKey && !newHotkey.shiftKey) {
                 alert('Please set at least one key or modifier');
                 return;
             }
 
+            // Save configurations
             setNewHotkey(newHotkey);
+            currentLogLevel = parseInt(logLevelSelect.value);
+            GM_setValue('logLevel', currentLogLevel);
+
             document.body.removeChild(dialog);
 
             // Show confirmation
@@ -237,7 +261,7 @@
             ].filter(Boolean).join('+');
 
             const hotkeyStr = modifiers + (modifiers && newHotkey.key ? '+' : '') + newHotkey.key;
-            showNotification(`Hotkey set to: ${hotkeyStr || 'None'}`);
+            showNotification(`Settings saved. Hotkey: ${hotkeyStr || 'None'}`);
         });
 
         cancelBtn.addEventListener('click', () => {
@@ -255,7 +279,7 @@
     // Register menu command inside the IIFE
     GM_registerMenuCommand('Configure Audio Replay Hotkey', promptForHotkey);
 
-    console.log('[APH-MK][anonymous:131] Script setup complete');
+    log(LOG_LEVELS.INFO, 'Script setup complete');
 })();
 
 // Add new site match for Collins Dictionary French-English
@@ -288,10 +312,10 @@ if (window.location.href.match(/https:\/\/www\.collinsdictionary\.com\/dictionar
                 const copyText = `${mp3Url}`;
 
                 navigator.clipboard.writeText(copyText).then(() => {
-                    console.log('Pronunciation and MP3 URL copied to clipboard');
+                    log(LOG_LEVELS.INFO, 'Pronunciation and MP3 URL copied to clipboard');
                     showNotification(`${pronText}'s pronunciation and MP3 URL copied to clipboard`);
                 }).catch(err => {
-                    console.error('Failed to copy pronunciation and MP3 URL: ', err);
+                    log(LOG_LEVELS.ERROR, 'Failed to copy pronunciation and MP3 URL: ', err);
                     showNotification(`Failed to copy ${pronText}'s pronunciation and MP3 URL`);
                 });
             });
@@ -329,4 +353,12 @@ function showNotification(message) {
             document.body.removeChild(notification);
         }, 300);
     }, 2000);
+}
+
+// Add logging utility function
+function log(level, ...args) {
+    if (level <= currentLogLevel) {
+        const levelName = Object.keys(LOG_LEVELS).find(key => LOG_LEVELS[key] === level);
+        console.log(`[APH-MK][${levelName}]`, ...args);
+    }
 }
