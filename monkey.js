@@ -106,7 +106,8 @@
             !hotkey.metaKey && !hotkey.shiftKey) {
             return;
         }
-
+        console.log('[APH-MK][handleHotkey:109] Hotkey:', hotkey);
+        console.log('[APH-MK][handleHotkey:110] Event:', event);
         // Check if the event matches the configured hotkey
         if ((hotkey.key ? event.key.toLowerCase() === hotkey.key.toLowerCase() : true) &&
             event.ctrlKey === hotkey.ctrlKey &&
@@ -163,8 +164,10 @@
         console.log('[APH-MK][setNewHotkey:116] New hotkey set:', newHotkey);
     }
 
-    // Set the initial hotkey
-    setNewHotkey(defaultHotkey);
+    // Instead, only set the default if no hotkey exists
+    if (!GM_getValue('audioReplayHotkey')) {
+        setNewHotkey(defaultHotkey);
+    }
 
     // Move these functions inside the IIFE
     function promptForHotkey() {
