@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Audio Control Highlighter and Replay
 // @namespace    http://tampermonkey.net/
-// @version      1.026
+// @version      1.027
 // @description  Highlights audio controls and buttons, adds customizable hotkeys for replay and button click
 // @author       Me
 // @match        https://www.remnote.com/*
@@ -208,10 +208,10 @@
                 <label>Key: <input type="text" id="hotkeyChar" maxlength="1" value="${hotkey.key}" style="width: 30px;"></label>
             </div>
             <div style="margin-bottom: 15px;">
-                <label><input type="checkbox" id="hotkeyCtrl" ${hotkey.ctrlKey ? 'checked' : ''}> Ctrl</label>
-                <label style="margin-left: 10px;"><input type="checkbox" id="hotkeyAlt" ${hotkey.altKey ? 'checked' : ''}> Alt</label>
-                <label style="margin-left: 10px;"><input type="checkbox" id="hotkeyShift" ${hotkey.shiftKey ? 'checked' : ''}> Shift</label>
-                <label style="margin-left: 10px;"><input type="checkbox" id="hotkeyMeta" ${hotkey.metaKey ? 'checked' : ''}> Meta</label>
+                <label><input type="checkbox" id="hotkeyCtrl" ${hotkey.ctrlKey ? 'checked' : ''}> ⌃(Ctrl)</label>
+                <label style="margin-left: 10px;"><input type="checkbox" id="hotkeyShift" ${hotkey.shiftKey ? 'checked' : ''}> ⇧(Shift)</label>
+                <label style="margin-left: 10px;"><input type="checkbox" id="hotkeyAlt" ${hotkey.altKey ? 'checked' : ''}>⌥(Alt)</label>
+                <label style="margin-left: 10px;"><input type="checkbox" id="hotkeyMeta" ${hotkey.metaKey ? 'checked' : ''}>⌘(Cmd)</label>
             </div>
             <div style="margin-bottom: 15px;">
                 <h4 style="margin: 10px 0;">Log Level</h4>
