@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Audio Control Highlighter and Replay
 // @namespace    http://tampermonkey.net/
-// @version      1.028
+// @version      1.029
 // @description  Highlights audio controls and buttons, adds customizable hotkeys for replay and button click
 // @author       Me
 // @match        https://www.remnote.com/*
@@ -303,27 +303,26 @@
                     pronSpan.style.backgroundColor = 'yellow';
                     setTimeout(() => { pronSpan.style.backgroundColor = ''; }, 1000);
                 });
-
                 // Copy mp3 URL and text when clicking the span
                 pronSpan.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    const mp3Url = audioLink.getAttribute('data-src-mp3');
                     let pronText = pronSpan.textContent.trim();
-
+                    const mp3Url = audioLink.getAttribute('data-src-mp3');
+                    if (mp3Url) {
+                        // click the play button of mp3
+                        audioLink.click();
+                    }
                     // Check for punctuation spans and include them if present
                     const punctuationSpans = element.querySelectorAll('span.punctuation');
                     if (punctuationSpans.length === 2) {
                         pronText = `${punctuationSpans[0].textContent.trim()}${pronText}${punctuationSpans[1].textContent.trim()}`;
                     }
 
-                    const copyText = `${mp3Url}`;
-
-                    navigator.clipboard.writeText(copyText).then(() => {
-                        log(LOG_LEVELS.INFO, 'Pronunciation and MP3 URL copied to clipboard');
-                        showNotification(`${pronText}'s pronunciation and MP3 URL copied to clipboard`);
+                    navigator.clipboard.writeText(`${pronText}`).then(() => {
+                        showNotification(`${pronText}'s copied to clipboard`);
                     }).catch(err => {
-                        log(LOG_LEVELS.ERROR, 'Failed to copy pronunciation and MP3 URL: ', err);
-                        showNotification(`Failed to copy ${pronText}'s pronunciation and MP3 URL`);
+                        log(LOG_LEVELS.ERROR, 'Failed to copy pronunciation', err);
+                        showNotification(`Failed to copy ${pronText}'s pronunciation`);
                     });
                 });
             }
