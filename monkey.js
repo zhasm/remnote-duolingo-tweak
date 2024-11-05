@@ -97,6 +97,17 @@
             display: inline-block;
             margin-bottom: 4px;
         }
+
+        /* Add spacing after French spans */
+        span[lang="fr"]::after {
+            content: ' ';
+            white-space: pre;
+        }
+
+        /* Ensure French spans don't collapse */
+        span[lang="fr"] {
+            display: inline-block;
+        }
     `);
 
     function highlightAudioControl(audioElement) {
