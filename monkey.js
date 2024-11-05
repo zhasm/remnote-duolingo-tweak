@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Audio Control Highlighter and Replay
 // @namespace    http://tampermonkey.net/
-// @version      1.030
+// @version      1.031
 // @description  Highlights audio controls and buttons, adds customizable hotkeys for replay and button click
 // @author       Me
 // @match        https://www.remnote.com/*
@@ -81,6 +81,21 @@
         span[dir="ltr"] button:hover {
             background-color: #4a90e2 !important;
             color: white !important;
+        }
+
+        /* Style for line breaks after audio buttons */
+        div[dir="ltr"] > span + br {
+            content: '';
+            display: block;
+            margin-top: 8px;
+            margin-bottom: 8px;
+            line-height: 1.2;
+        }
+
+        /* Ensure consistent spacing around spans */
+        div[dir="ltr"] > span {
+            display: inline-block;
+            margin-bottom: 4px;
         }
     `);
 
@@ -363,34 +378,61 @@
 
     // Add this function after waitForAudioElement function
     function addLineBreakAfterFirstSpan() {
-        log(LOG_LEVELS.DEBUG, 'Checking for spans that need line breaks');
+        log(LOG_LEVELS.DEBUG, 'Checking for spans with buttons that need line breaks');
+
+        // Skip if any audio is currently playing
+        const activeAudio = document.querySelector('audio:not([paused])');
+        if (activeAudio && !activeAudio.paused) {
+            log(LOG_LEVELS.DEBUG, 'Audio is playing, skipping line break addition');
+            return;
+        }
 
         const divs = document.querySelectorAll('div[dir="ltr"]');
         divs.forEach(div => {
             const spans = div.querySelectorAll(':scope > span');
-            if (spans.length >= 2) {
-                const firstSpan = spans[0];
-                // Check if there's already a <br> after the first span
-                const nextElement = firstSpan.nextSibling;
+            const spanWithButton = Array.from(spans).find(span => span.querySelector('button'));
+
+            if (spanWithButton) {
+                const nextElement = spanWithButton.nextSibling;
                 if (nextElement?.nodeName !== 'BR') {
-                    log(LOG_LEVELS.DEBUG, 'Adding line break after first span');
+                    log(LOG_LEVELS.DEBUG, 'Adding line break after span with button');
                     const br = document.createElement('br');
-                    firstSpan.after(br);
+                    br.className = 'audio-button-break'; // Add class for potential specific styling
+                    spanWithButton.after(br);
                 }
             }
         });
     }
 
-    // Add observer to handle dynamic content
+    // Add observer to handle dynamic content with debouncing
+    let observerTimeout;
     const contentObserver = new MutationObserver((mutations) => {
-        addLineBreakAfterFirstSpan();
+        // Cancel any pending execution
+        if (observerTimeout) {
+            clearTimeout(observerTimeout);
+        }
+
+        // Debounce the execution to avoid rapid consecutive calls
+        observerTimeout = setTimeout(() => {
+            // Only proceed if no audio is playing
+            const activeAudio = document.querySelector('audio:not([paused])');
+            if (!activeAudio || activeAudio.paused) {
+                addLineBreakAfterFirstSpan();
+            }
+        }, 100); // Wait 100ms after last mutation
     });
 
+    // Configure observer to be more specific and efficient
     contentObserver.observe(document.body, {
         childList: true,
-        subtree: true
+        subtree: true,
+        attributes: false,
+        characterData: false
     });
 
-    // Initial check for existing content
-    addLineBreakAfterFirstSpan();
+    // Initial check for existing content (only if no audio is playing)
+    const initialAudio = document.querySelector('audio:not([paused])');
+    if (!initialAudio || initialAudio.paused) {
+        addLineBreakAfterFirstSpan();
+    }
 })();
