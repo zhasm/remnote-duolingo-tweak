@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Audio Control Highlighter and Replay
 // @namespace    http://tampermonkey.net/
-// @version      1.029
+// @version      1.030
 // @description  Highlights audio controls and buttons, adds customizable hotkeys for replay and button click
 // @author       Me
 // @match        https://www.remnote.com/*
@@ -360,4 +360,37 @@
             }, 300);
         }, 2000);
     }
+
+    // Add this function after waitForAudioElement function
+    function addLineBreakAfterFirstSpan() {
+        log(LOG_LEVELS.DEBUG, 'Checking for spans that need line breaks');
+
+        const divs = document.querySelectorAll('div[dir="ltr"]');
+        divs.forEach(div => {
+            const spans = div.querySelectorAll(':scope > span');
+            if (spans.length >= 2) {
+                const firstSpan = spans[0];
+                // Check if there's already a <br> after the first span
+                const nextElement = firstSpan.nextSibling;
+                if (nextElement?.nodeName !== 'BR') {
+                    log(LOG_LEVELS.DEBUG, 'Adding line break after first span');
+                    const br = document.createElement('br');
+                    firstSpan.after(br);
+                }
+            }
+        });
+    }
+
+    // Add observer to handle dynamic content
+    const contentObserver = new MutationObserver((mutations) => {
+        addLineBreakAfterFirstSpan();
+    });
+
+    contentObserver.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+
+    // Initial check for existing content
+    addLineBreakAfterFirstSpan();
 })();
