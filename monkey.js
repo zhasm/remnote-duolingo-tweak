@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Audio Control Highlighter and Replay
 // @namespace    http://tampermonkey.net/
-// @version      1.031
+// @version      1.033
 // @description  Highlights audio controls and buttons, adds customizable hotkeys for replay and button click
 // @author       Me
 // @match        https://www.remnote.com/*
@@ -334,22 +334,31 @@
                     e.stopPropagation();
                     let pronText = pronSpan.textContent.trim();
                     const mp3Url = audioLink.getAttribute('data-src-mp3');
-                    if (mp3Url) {
-                        // click the play button of mp3
-                        audioLink.click();
-                    }
+
                     // Check for punctuation spans and include them if present
                     const punctuationSpans = element.querySelectorAll('span.punctuation');
                     if (punctuationSpans.length === 2) {
                         pronText = `${punctuationSpans[0].textContent.trim()}${pronText}${punctuationSpans[1].textContent.trim()}`;
                     }
+                    console.log("e.altKey: ", e.altKey);
 
-                    navigator.clipboard.writeText(`${pronText}`).then(() => {
-                        showNotification(`${pronText}'s copied to clipboard`);
-                    }).catch(err => {
-                        log(LOG_LEVELS.ERROR, 'Failed to copy pronunciation', err);
-                        showNotification(`Failed to copy ${pronText}'s pronunciation`);
-                    });
+                    if (e.altKey) {
+                        // When Option/Alt is pressed, only copy
+                        navigator.clipboard.writeText(`${mp3Url}`).then(() => {
+                            showNotification(`🌐 ${pronText}'s  URL hasb been copied to clipboard`);
+                        }).catch(err => {
+                            log(LOG_LEVELS.ERROR, 'Failed to copy pronunciation', err);
+                            showNotification(`Failed to copy ${pronText}`);
+                        });
+                    } else {
+                        // Default behavior: play audio and copy
+                        navigator.clipboard.writeText(`${pronText}`).then(() => {
+                            showNotification(`${pronText}'s copied to clipboard`);
+                        }).catch(err => {
+                            log(LOG_LEVELS.ERROR, 'Failed to copy pronunciation', err);
+                            showNotification(`Failed to copy ${pronText}'s pronunciation`);
+                        });
+                    }
                 });
             }
         });
