@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Audio Control Highlighter and Replay
 // @namespace    http://tampermonkey.net/
-// @version      1.035
+// @version      1.036
 // @description  Highlights audio controls and buttons, adds customizable
 // @author       Me
 // @match        https://www.remnote.com/*
@@ -210,41 +210,42 @@ if (!GM_getValue('audioReplayHotkey')) {
 
 // Move these functions inside the IIFE
 function promptForHotkey() {
-  // Create dialog elements
   const dialog = document.createElement('div');
   dialog.style.cssText = `
           position: fixed;
           top: 50%;
           left: 50%;
           transform: translate(-50%, -50%);
-          background: white;
+          background: var(--background-color, #2d2d2d);
+          color: var(--text-color, #e0e0e0);
           padding: 20px;
           border-radius: 8px;
-          box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+          box-shadow: 0 2px 10px rgba(0,0,0,0.4);
           z-index: 10000;
           min-width: 300px;
       `;
 
   const content = `
-          <h3 style="margin-top: 0;">Script Configuration</h3>
+          <h3 style="margin-top: 0; color: var(--text-color, #e0e0e0);">Script Configuration</h3>
           <div style="margin-bottom: 15px;">
-              <h4 style="margin: 10px 0;">Hotkey Settings</h4>
-              <label>Key: <input type="text" id="hotkeyChar" maxlength="1" value="${
-      hotkey.key}" style="width: 30px;"></label>
+              <h4 style="margin: 10px 0; color: var(--text-color, #e0e0e0);">Hotkey Settings</h4>
+              <label style="color: var(--text-color, #e0e0e0);">Key: <input type="text" id="hotkeyChar" maxlength="1" value="${
+      hotkey
+          .key}" style="width: 30px; background: var(--input-background, #3d3d3d); color: var(--text-color, #e0e0e0); border: 1px solid var(--border-color, #555);"></label>
           </div>
           <div style="margin-bottom: 15px;">
-              <label><input type="checkbox" id="hotkeyCtrl" ${
+              <label style="color: var(--text-color, #e0e0e0);"><input type="checkbox" id="hotkeyCtrl" ${
       hotkey.ctrlKey ? 'checked' : ''}> ⌃(Ctrl)</label>
-              <label style="margin-left: 10px;"><input type="checkbox" id="hotkeyShift" ${
+              <label style="margin-left: 10px; color: var(--text-color, #e0e0e0);"><input type="checkbox" id="hotkeyShift" ${
       hotkey.shiftKey ? 'checked' : ''}> ⇧(Shift)</label>
-              <label style="margin-left: 10px;"><input type="checkbox" id="hotkeyAlt" ${
-      hotkey.altKey ? 'checked' : ''}>⌥(Alt)</label>
-              <label style="margin-left: 10px;"><input type="checkbox" id="hotkeyMeta" ${
-      hotkey.metaKey ? 'checked' : ''}>⌘(Cmd)</label>
+              <label style="margin-left: 10px; color: var(--text-color, #e0e0e0);"><input type="checkbox" id="hotkeyAlt" ${
+      hotkey.altKey ? 'checked' : ''}> ⌥(Alt)</label>
+              <label style="margin-left: 10px; color: var(--text-color, #e0e0e0);"><input type="checkbox" id="hotkeyMeta" ${
+      hotkey.metaKey ? 'checked' : ''}> ⌘(Cmd)</label>
           </div>
           <div style="margin-bottom: 15px;">
-              <h4 style="margin: 10px 0;">Log Level</h4>
-              <select id="logLevel">
+              <h4 style="margin: 10px 0; color: var(--text-color, #e0e0e0);">Log Level</h4>
+              <select id="logLevel" style="background: var(--input-background, #3d3d3d); color: var(--text-color, #e0e0e0); border: 1px solid var(--border-color, #555); padding: 5px;">
                   <option value="${LOG_LEVELS.ERROR}" ${
       currentLogLevel === LOG_LEVELS.ERROR ? 'selected' :
                                              ''}>Error Only</option>
@@ -260,8 +261,8 @@ function promptForHotkey() {
               </select>
           </div>
           <div style="text-align: right;">
-              <button id="configSave" style="margin-right: 10px;">Save</button>
-              <button id="configCancel">Cancel</button>
+              <button id="configSave" style="margin-right: 10px; background: var(--button-background, #4a4a4a); color: var(--button-text, #e0e0e0); border: 1px solid var(--border-color, #555); padding: 5px 10px; border-radius: 4px; cursor: pointer;">Save</button>
+              <button id="configCancel" style="background: var(--button-background, #4a4a4a); color: var(--button-text, #e0e0e0); border: 1px solid var(--border-color, #555); padding: 5px 10px; border-radius: 4px; cursor: pointer;">Cancel</button>
           </div>
       `;
 
@@ -579,10 +580,11 @@ function showThemeSelector() {
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      background: white;
+      background: var(--background-color, #2d2d2d);
+      color: var(--text-color, #e0e0e0);
       padding: 20px;
       border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.4);
       z-index: 10000;
       min-width: 200px;
   `;
@@ -591,7 +593,7 @@ function showThemeSelector() {
   const radioOptions = Object.entries(ALL_COLOR_THEMES)
                            .map(([key, theme]) => `
     <div style="margin: 8px 0;">
-      <label style="display: flex; align-items: center; cursor: pointer;">
+      <label style="display: flex; align-items: center; cursor: pointer; color: var(--text-color, #e0e0e0);">
         <input type="radio"
                name="themeRadio"
                value="${key}"
@@ -604,8 +606,8 @@ function showThemeSelector() {
 
   dialog.innerHTML = `
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-          <h4 style="margin: 0;">选择主题</h4>
-          <button id="closeThemeDialog" style="border: none; background: none; cursor: pointer; padding: 5px;">✕</button>
+          <h4 style="margin: 0; color: var(--text-color, #e0e0e0);">选择主题</h4>
+          <button id="closeThemeDialog" style="border: none; background: none; color: var(--text-color, #e0e0e0); cursor: pointer; padding: 5px;">✕</button>
       </div>
       <div style="margin: 10px 0;">
           ${radioOptions}
