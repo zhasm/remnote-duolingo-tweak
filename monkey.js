@@ -142,7 +142,7 @@ function replayAudio(audioElement) {
           });
     }
   } else {
-    log(LOG_LEVELS.WARN, 'No audio element to replay');
+    log(LOG_LEVELS.DEBUG, 'No audio element to replay');
   }
 }
 
@@ -168,7 +168,7 @@ function handleHotkey(event) {
       log(LOG_LEVELS.INFO, 'Clicking button');
       button.click();
     } else {
-      log(LOG_LEVELS.WARN, 'No audio or button found');
+      log(LOG_LEVELS.DEBUG, 'No audio or button found');
     }
   }
 }
