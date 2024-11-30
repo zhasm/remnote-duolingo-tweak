@@ -329,15 +329,15 @@ log(LOG_LEVELS.INFO, 'Script setup complete');
 // Move Collins Dictionary code inside IIFE
 if (window.location.href.match(
         /https:\/\/www\.collinsdictionary\.com\/dictionary\/french-english/)) {
-  const pronunciationElements =
-      document.querySelectorAll('div.mini_h2.form, span.form.type-phr');
+  const pronunciationElements = document.querySelectorAll(
+      'div.mini_h2.form, span.form.type-phr, span.hwd_sound');
 
   pronunciationElements.forEach(element => {
     const pronSpan = element.querySelector('span.pron') ||
-        element.querySelector('span.orth');
+        element.querySelector('span.orth') || element;
     const audioLink = element.querySelector('a[data-src-mp3]');
 
-    if (pronSpan && audioLink) {
+    if (audioLink) {
       // Highlight span when clicking the element
       element.addEventListener('click', () => {
         pronSpan.style.backgroundColor = 'yellow';
