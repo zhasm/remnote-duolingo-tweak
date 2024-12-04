@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Audio Control Highlighter and Replay
 // @namespace    http://tampermonkey.net/
-// @version      1.036
+// @version      1.037
 // @description  Highlights audio controls and buttons, adds customizable
 // @author       Me
 // @match        https://www.remnote.com/*
@@ -46,7 +46,29 @@ const defaultHotkey = {
   metaKey: false,
   shiftKey: false
 };
-let hotkey = GM_getValue('audioReplayHotkey', defaultHotkey);
+
+// Modify how we store and retrieve hotkeys
+function getDomainKey() {
+  return window.location.hostname.replace(/^www\./, '');
+}
+
+function getHotkeyForDomain() {
+  const domain = getDomainKey();
+  const allHotkeys = GM_getValue('audioReplayHotkeys', {});
+  return allHotkeys[domain] || defaultHotkey;
+}
+
+function setNewHotkey(newHotkey) {
+  const domain = getDomainKey();
+  const allHotkeys = GM_getValue('audioReplayHotkeys', {});
+  allHotkeys[domain] = newHotkey;
+  GM_setValue('audioReplayHotkeys', allHotkeys);
+  hotkey = newHotkey;
+  log(LOG_LEVELS.INFO, `New hotkey set for ${domain}:`, newHotkey);
+}
+
+// Initialize hotkey for current domain
+let hotkey = getHotkeyForDomain();
 
 // Add custom CSS
 GM_addStyle(`
@@ -196,20 +218,9 @@ waitForAudioElement().then((audioElement) => {
 // Add event listener for the hotkey
 document.addEventListener('keydown', handleHotkey);
 
-// Function to set a new hotkey
-function setNewHotkey(newHotkey) {
-  hotkey = newHotkey;
-  GM_setValue('audioReplayHotkey', newHotkey);
-  log(LOG_LEVELS.INFO, 'New hotkey set:', newHotkey);
-}
-
-// Instead, only set the default if no hotkey exists
-if (!GM_getValue('audioReplayHotkey')) {
-  setNewHotkey(defaultHotkey);
-}
-
-// Move these functions inside the IIFE
+// Update the dialog to show domain-specific info
 function promptForHotkey() {
+  const domain = getDomainKey();
   const dialog = document.createElement('div');
   dialog.style.cssText = `
           position: fixed;
@@ -226,7 +237,8 @@ function promptForHotkey() {
       `;
 
   const content = `
-          <h3 style="margin-top: 0; color: var(--text-color, #e0e0e0);">Script Configuration</h3>
+          <h3 style="margin-top: 0; color: var(--text-color, #e0e0e0);">Script Configuration for ${
+      domain}</h3>
           <div style="margin-bottom: 15px;">
               <h4 style="margin: 10px 0; color: var(--text-color, #e0e0e0);">Hotkey Settings</h4>
               <label style="color: var(--text-color, #e0e0e0);">Key: <input type="text" id="hotkeyChar" maxlength="1" value="${
