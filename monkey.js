@@ -40,7 +40,7 @@ log(LOG_LEVELS.INFO, 'Script loaded');
 
 // Customizable hotkey (default to Control+A)
 const defaultHotkey = {
-  key: 'a',
+  key: '',
   ctrlKey: true,
   altKey: false,
   metaKey: false,
@@ -241,9 +241,9 @@ function promptForHotkey() {
       domain}</h3>
           <div style="margin-bottom: 15px;">
               <h4 style="margin: 10px 0; color: var(--text-color, #e0e0e0);">Hotkey Settings</h4>
-              <label style="color: var(--text-color, #e0e0e0);">Key: <input type="text" id="hotkeyChar" maxlength="1" value="${
-      hotkey
-          .key}" style="width: 30px; background: var(--input-background, #3d3d3d); color: var(--text-color, #e0e0e0); border: 1px solid var(--border-color, #555);"></label>
+              <label style="color: var(--text-color, #e0e0e0);">Key: <input type="text" id="hotkeyChar" maxlength="1"
+              value="${hotkey.key}"
+              style="width: 30px; background: var(--input-background, #3d3d3d); color: var(--text-color, #e0e0e0); border: 1px solid var(--border-color, #555);"></label>
           </div>
           <div style="margin-bottom: 15px;">
               <label style="color: var(--text-color, #e0e0e0);"><input type="checkbox" id="hotkeyCtrl" ${
