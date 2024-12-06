@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Audio Control Highlighter and Replay
 // @namespace    http://tampermonkey.net/
-// @version      1.037
+// @version      1.038
 // @description  Highlights audio controls and buttons, adds customizable
 // @author       Me
 // @match        https://www.remnote.com/*
@@ -341,6 +341,12 @@ log(LOG_LEVELS.INFO, 'Script setup complete');
 // Move Collins Dictionary code inside IIFE
 if (window.location.href.match(
         /https:\/\/www\.collinsdictionary\.com\/dictionary\/french-english/)) {
+  // Remove 'English Translation of ' from title
+  const title = document.title;
+  if (title.startsWith('English Translation of ')) {
+    document.title = title.replace('English Translation of ', '');
+  }
+
   const pronunciationElements = document.querySelectorAll(
       'div.mini_h2.form, span.form.type-phr, span.hwd_sound');
 
