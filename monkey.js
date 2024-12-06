@@ -344,7 +344,11 @@ if (window.location.href.match(
   // Remove 'English Translation of ' from title
   const title = document.title;
   if (title.startsWith('English Translation of ')) {
-    document.title = title.replace('English Translation of ', '');
+    document.title = title.replace('English Translation of ', '')
+                         .replace('| Collins French-English Dictionary', '')
+                         .replace('“', '')
+                         .replace('”', '')
+                         .toLowerCase();
   }
 
   const pronunciationElements = document.querySelectorAll(
