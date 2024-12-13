@@ -20,7 +20,7 @@
 // Geschwindigkeitsanpassung und mehr.
 // @namespace    https://github.com/xxxily/h5player
 // @homepage     https://github.com/xxxily/h5player
-// @version      4.3.4
+// @version      4.3.5
 // @description
 // 视频增强脚本，支持所有H5音视频网站，例如：B站、抖音、腾讯视频、优酷、爱奇艺、西瓜视频、油管（YouTube）、微博视频、知乎视频、搜狐视频、网易公开课、百度网盘、阿里云盘、ted、instagram、twitter等。全程快捷键控制，支持：倍速播放/加速播放、视频画面截图、画中画、网页全屏、调节亮度、饱和度、对比度、自定义配置功能增强等功能，为你提供愉悦的在线视频播放体验。还有视频广告快进、在线教程/教育视频倍速快学、视频文件下载等能力
 // @description:en  Audio and Video enhancement script, supports all H5 video
@@ -16703,7 +16703,7 @@ function init(retryCount = 0) {
 
   h5PlayerInit();
 }
-
+console.log('hello world');
 /**
  * 某些极端情况下，直接访问window对象都会导致报错，所以整个init都try起来
  * 例如：www.icourse163.org 就有一定的机率异常
@@ -16720,3 +16720,5 @@ try {
     }
   }, 10);
 }
+
+// very last code
