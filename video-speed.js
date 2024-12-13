@@ -11037,6 +11037,24 @@ const h5playerUI = function (window) {var h5playerUI = (function () {
           args: 4
         },
         {
+          title: '5.0x',
+          desc: '5.0x',
+          action: 'setPlaybackRate',
+          args: 5
+        },
+        {
+          title: '6.0x',
+          desc: '6.0x',
+          action: 'setPlaybackRate',
+          args: 6
+        },
+        {
+          title: '7.0x',
+          desc: '7.0x',
+          action: 'setPlaybackRate',
+          args: 7
+        },
+        {
           title: '8.0x',
           desc: '8.0x',
           action: 'setPlaybackRate',
@@ -11047,6 +11065,18 @@ const h5playerUI = function (window) {var h5playerUI = (function () {
           desc: '16.0x',
           action: 'setPlaybackRate',
           args: 16
+        },
+        {
+          title: '32.0x',
+          desc: '32.0x',
+          action: 'setPlaybackRate',
+          args: 32
+        },
+        {
+          title: '64.0x',
+          desc: '64.0x',
+          action: 'setPlaybackRate',
+          args: 64
         }
       ]
     },
@@ -11590,7 +11620,7 @@ const h5playerUI = function (window) {var h5playerUI = (function () {
           `
         }
       }).join('')
-    } 
+    }
   </div>
   `
   }
