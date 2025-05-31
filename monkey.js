@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Audio Control Highlighter and Replay
 // @namespace    http://tampermonkey.net/
-// @version      1.038
+// @version      1.039
 // @description  Highlights audio controls and buttons, adds customizable
 // @author       Me
 // @match        https://www.remnote.com/*
@@ -215,8 +215,76 @@ waitForAudioElement().then((audioElement) => {
   highlightAudioControl(audioElement);
 });
 
+// Keep track of initialized textareas to avoid duplicate listeners
+let initializedTextareas = new WeakSet();
+
+function initTextArea() {
+//  console.log('[✅initTextArea] Starting initialization with observer and interval...');
+  
+  // Function to check and initialize textarea
+  function checkAndInitTextarea() {
+    const textarea = document.querySelector('#content textarea');
+    if (textarea && !initializedTextareas.has(textarea)) {
+      log(LOG_LEVELS.INFO, '[✅initTextArea] New textarea found');
+      setupTextareaListener(textarea);
+      initializedTextareas.add(textarea);
+    }
+  }
+
+  // Initial check
+  checkAndInitTextarea();
+
+  // Set up periodic checking
+  const intervalId = setInterval(checkAndInitTextarea, 3000);
+
+  // Set up observer for dynamic changes
+  const observer = new MutationObserver((mutations) => {
+    checkAndInitTextarea();
+  });
+
+  // Start observing the document with the configured parameters
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
+
+  log(LOG_LEVELS.INFO, '[✅initTextArea] Observer and interval setup complete');
+}
+
+function setupTextareaListener(textarea) {
+  textarea.addEventListener('keydown', (event) => {
+    // Log the keydown event
+    log(LOG_LEVELS.INFO, '[✅initTextArea] Keydown event detected:', {
+      key: event.key,
+      ctrlKey: event.ctrlKey,
+      shiftKey: event.shiftKey,
+      altKey: event.altKey,
+      metaKey: event.metaKey
+    });
+    
+    // Check if the pressed keys match the global hotkey configuration
+    if (
+      (hotkey.key ? event.key.toLowerCase() === hotkey.key.toLowerCase() : true) &&
+      event.ctrlKey === hotkey.ctrlKey &&
+      event.altKey === hotkey.altKey &&
+      event.metaKey === hotkey.metaKey &&
+      event.shiftKey === hotkey.shiftKey
+    ) {
+      log(LOG_LEVELS.INFO, '[✅initTextArea] Global hotkey combination pressed in textarea');
+      // Trigger the global hotkey handler
+      handleHotkey(event);
+      // Prevent default behavior to avoid any conflicts
+      event.preventDefault();
+    }
+  });
+
+  log(LOG_LEVELS.INFO, '[✅initTextArea] Event listener added successfully with global hotkey configuration');
+}
+
 // Add event listener for the hotkey
 document.addEventListener('keydown', handleHotkey);
+
+initTextArea();
 
 // Update the dialog to show domain-specific info
 function promptForHotkey() {
@@ -346,8 +414,8 @@ if (window.location.href.match(
   if (title.startsWith('English Translation of ')) {
     document.title = title.replace('English Translation of ', '')
                          .replace('| Collins French-English Dictionary', '')
-                         .replace('“', '')
-                         .replace('”', '')
+                         .replace('"', '')
+                         .replace('"', '')
                          .toLowerCase();
   }
 
