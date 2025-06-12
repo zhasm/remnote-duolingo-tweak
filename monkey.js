@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Audio Control Highlighter and Replay
 // @namespace    http://tampermonkey.net/
-// @version      1.039
+// @version      1.040
 // @description  Highlights audio controls and buttons, adds customizable
 // @author       Me
 // @match        https://www.remnote.com/*
@@ -219,8 +219,9 @@ waitForAudioElement().then((audioElement) => {
 let initializedTextareas = new WeakSet();
 
 function initTextArea() {
-//  console.log('[✅initTextArea] Starting initialization with observer and interval...');
-  
+  //  console.log('[✅initTextArea] Starting initialization with observer and
+  //  interval...');
+
   // Function to check and initialize textarea
   function checkAndInitTextarea() {
     const textarea = document.querySelector('#content textarea');
@@ -243,10 +244,7 @@ function initTextArea() {
   });
 
   // Start observing the document with the configured parameters
-  observer.observe(document.body, {
-    childList: true,
-    subtree: true
-  });
+  observer.observe(document.body, {childList: true, subtree: true});
 
   log(LOG_LEVELS.INFO, '[✅initTextArea] Observer and interval setup complete');
 }
@@ -261,16 +259,15 @@ function setupTextareaListener(textarea) {
       altKey: event.altKey,
       metaKey: event.metaKey
     });
-    
+
     // Check if the pressed keys match the global hotkey configuration
-    if (
-      (hotkey.key ? event.key.toLowerCase() === hotkey.key.toLowerCase() : true) &&
-      event.ctrlKey === hotkey.ctrlKey &&
-      event.altKey === hotkey.altKey &&
-      event.metaKey === hotkey.metaKey &&
-      event.shiftKey === hotkey.shiftKey
-    ) {
-      log(LOG_LEVELS.INFO, '[✅initTextArea] Global hotkey combination pressed in textarea');
+    if ((hotkey.key ? event.key.toLowerCase() === hotkey.key.toLowerCase() :
+                      true) &&
+        event.ctrlKey === hotkey.ctrlKey && event.altKey === hotkey.altKey &&
+        event.metaKey === hotkey.metaKey &&
+        event.shiftKey === hotkey.shiftKey) {
+      log(LOG_LEVELS.INFO,
+          '[✅initTextArea] Global hotkey combination pressed in textarea');
       // Trigger the global hotkey handler
       handleHotkey(event);
       // Prevent default behavior to avoid any conflicts
@@ -278,7 +275,8 @@ function setupTextareaListener(textarea) {
     }
   });
 
-  log(LOG_LEVELS.INFO, '[✅initTextArea] Event listener added successfully with global hotkey configuration');
+  log(LOG_LEVELS.INFO,
+      '[✅initTextArea] Event listener added successfully with global hotkey configuration');
 }
 
 // Add event listener for the hotkey
@@ -447,14 +445,16 @@ if (window.location.href.match(
           pronText = `${punctuationSpans[0].textContent.trim()}${pronText}${
               punctuationSpans[1].textContent.trim()}`;
         }
-        console.log('e.altKey: ', e.altKey);
 
         if (e.altKey) {
+          if (mp3Url.length === 0) {
+            return;
+          }
           // When Option/Alt is pressed, only copy
           navigator.clipboard.writeText(`${mp3Url}`)
               .then(() => {
                 showNotification(
-                    `🌐 ${pronText}'s  URL hasb been copied to clipboard`);
+                    `🌐 ${pronText}'s URL has been copied to clipboard`);
               })
               .catch(err => {
                 log(LOG_LEVELS.ERROR, 'Failed to copy pronunciation', err);
@@ -462,6 +462,9 @@ if (window.location.href.match(
               });
         } else {
           // Default behavior: play audio and copy
+          if (pronText.length === 0) {
+            return;
+          }
           navigator.clipboard.writeText(`${pronText}`)
               .then(() => {
                 showNotification(`${pronText}'s copied to clipboard`);
