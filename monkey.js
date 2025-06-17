@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Audio Control Highlighter and Replay
 // @namespace    http://tampermonkey.net/
-// @version      1.040
+// @version      1.041
 // @description  Highlights audio controls and buttons, adds customizable
 // @author       Me
 // @match        https://www.remnote.com/*
@@ -403,6 +403,34 @@ function promptForHotkey() {
 GM_registerMenuCommand('Configure Audio Replay Hotkey', promptForHotkey);
 
 log(LOG_LEVELS.INFO, 'Script setup complete');
+
+
+// for remnote
+// https://www.remnote.com/flashcards
+if (window.location.href.match(/https:\/\/www\.remnote\.com\/flashcards/)) {
+  console.log('Remnote detected');
+
+  // Function to check and highlight 100% elements
+  function checkAndHighlightRemnoteElements() {
+    // if it not already highlighted, highlight it
+    document.querySelectorAll('.font-medium').forEach(el => {
+      if (el.textContent.trim() === '100%' &&
+          !el.classList.contains('highlighted')) {
+        el.style.backgroundColor = 'yellow';
+        el.style.color = 'green';
+        el.style.fontWeight = 'bold';
+        // add a new class "highlighted" to the element
+        el.classList.add('highlighted');
+      }
+    });
+  }
+
+  // Initial check
+  checkAndHighlightRemnoteElements();
+
+  // Register interval to check every 500 milliseconds
+  setInterval(checkAndHighlightRemnoteElements, 500);
+}
 
 // Move Collins Dictionary code inside IIFE
 if (window.location.href.match(
