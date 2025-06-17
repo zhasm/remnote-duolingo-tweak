@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Audio Control Highlighter and Replay
 // @namespace    http://tampermonkey.net/
-// @version      1.041
+// @version      1.043
 // @description  Highlights audio controls and buttons, adds customizable
 // @author       Me
 // @match        https://www.remnote.com/*
@@ -410,17 +410,25 @@ log(LOG_LEVELS.INFO, 'Script setup complete');
 if (window.location.href.match(/https:\/\/www\.remnote\.com\/flashcards/)) {
   console.log('Remnote detected');
 
+  // Add CSS class definition
+  const style = document.createElement('style');
+  style.textContent = `
+    .remnote-highlight {
+      background-color: yellow !important;
+      color: green !important;
+      font-weight: bold !important;
+      font-size: 18px !important;
+    }
+  `;
+  document.head.appendChild(style);
+
   // Function to check and highlight 100% elements
   function checkAndHighlightRemnoteElements() {
-    // if it not already highlighted, highlight it
     document.querySelectorAll('.font-medium').forEach(el => {
-      if (el.textContent.trim() === '100%' &&
-          !el.classList.contains('highlighted')) {
-        el.style.backgroundColor = 'yellow';
-        el.style.color = 'green';
-        el.style.fontWeight = 'bold';
-        // add a new class "highlighted" to the element
-        el.classList.add('highlighted');
+      if (el.textContent.trim() === '100%') {
+        if (!el.classList.contains('remnote-highlight')) {
+          el.classList.add('remnote-highlight');
+        }
       }
     });
   }
