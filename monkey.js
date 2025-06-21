@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Audio Control Highlighter and Replay
 // @namespace    http://tampermonkey.net/
-// @version      1.043
+// @version      1.044
 // @description  Highlights audio controls and buttons, adds customizable
 // @author       Me
 // @match        https://www.remnote.com/*
@@ -218,6 +218,9 @@ waitForAudioElement().then((audioElement) => {
 // Keep track of initialized textareas to avoid duplicate listeners
 let initializedTextareas = new WeakSet();
 
+// Keep track of initialized Remnote elements to avoid duplicate listeners
+let initializedRemnoteElements = new WeakSet();
+
 function initTextArea() {
   //  console.log('[✅initTextArea] Starting initialization with observer and
   //  interval...');
@@ -283,6 +286,92 @@ function setupTextareaListener(textarea) {
 document.addEventListener('keydown', handleHotkey);
 
 initTextArea();
+
+// Initialize Remnote flashcards functionality
+function initRemnoteFlashcards() {
+  const currentUrl = window.location.href;
+  const isFlashcardsPage = currentUrl.match(/https:\/\/www\.remnote\.com/);
+  
+  log(LOG_LEVELS.DEBUG, '[initRemnoteFlashcards] Checking Remnote flashcards URL:');
+  log(LOG_LEVELS.DEBUG, '[initRemnoteFlashcards] Current URL:', currentUrl);
+  log(LOG_LEVELS.DEBUG, '[initRemnoteFlashcards] Regex match result:', isFlashcardsPage);
+  
+  if (!isFlashcardsPage) {
+    log(LOG_LEVELS.INFO, '[initRemnoteFlashcards] Not on Remnote flashcards page, skipping initialization');
+    return;
+  }
+
+  log(LOG_LEVELS.INFO, '[initRemnoteFlashcards] Remnote flashcards detected');
+  log(LOG_LEVELS.DEBUG, '[initRemnoteFlashcards] Current URL:', currentUrl);
+
+  // Add CSS class definition (only once)
+  if (!document.getElementById('remnote-highlight-style')) {
+    try {
+      const style = document.createElement('style');
+      style.id = 'remnote-highlight-style';
+      style.textContent = `
+        .remnote-highlight {
+          background-color: yellow !important;
+          color: green !important;
+          font-weight: bold !important;
+          font-size: 18px !important;
+        }
+      `;
+      document.head.appendChild(style);
+      log(LOG_LEVELS.INFO, '[initRemnoteFlashcards] Remnote highlight CSS added successfully');
+    } catch (error) {
+      log(LOG_LEVELS.INFO, '[initRemnoteFlashcards] Failed to add Remnote highlight CSS:', error);
+    }
+  } else {
+    log(LOG_LEVELS.DEBUG, '[initRemnoteFlashcards] Remnote highlight CSS already exists');
+  }
+
+  // Function to check and highlight 100% elements
+  function checkAndHighlightRemnoteElements() {
+    try {
+      const elements = document.querySelectorAll('.font-medium');
+      let highlightedCount = 0;
+      
+      elements.forEach(el => {
+        if (el.textContent.trim() === '100%' && !initializedRemnoteElements.has(el)) {
+          try {
+            el.classList.add('remnote-highlight');
+            initializedRemnoteElements.add(el);
+            highlightedCount++;
+            log(LOG_LEVELS.DEBUG, '[initRemnoteFlashcards] Remnote element highlighted:', el.textContent);
+          } catch (error) {
+            log(LOG_LEVELS.INFO, '[initRemnoteFlashcards] Failed to highlight element:', error, 'Element:', el);
+          }
+        }
+      });
+      
+      if (highlightedCount > 0) {
+        log(LOG_LEVELS.INFO, `[initRemnoteFlashcards] Highlighted ${highlightedCount} new Remnote elements`);
+      }
+    } catch (error) {
+      log(LOG_LEVELS.INFO, '[initRemnoteFlashcards] Failed to check and highlight Remnote elements:', error);
+    }
+  }
+
+  // Initial check
+  try {
+    checkAndHighlightRemnoteElements();
+  } catch (error) {
+    log(LOG_LEVELS.INFO, '[initRemnoteFlashcards] Failed during initial Remnote check:', error);
+  }
+
+  // Register interval to check every 500 milliseconds
+  try {
+    setInterval(checkAndHighlightRemnoteElements, 500);
+    log(LOG_LEVELS.INFO, '[initRemnoteFlashcards] Remnote flashcards interval registered successfully');
+  } catch (error) {
+    log(LOG_LEVELS.INFO, '[initRemnoteFlashcards] Failed to register Remnote flashcards interval:', error);
+  }
+
+  log(LOG_LEVELS.INFO, '[initRemnoteFlashcards] Remnote flashcards initialization complete');
+}
+
+initRemnoteFlashcards();
 
 // Update the dialog to show domain-specific info
 function promptForHotkey() {
@@ -403,42 +492,6 @@ function promptForHotkey() {
 GM_registerMenuCommand('Configure Audio Replay Hotkey', promptForHotkey);
 
 log(LOG_LEVELS.INFO, 'Script setup complete');
-
-
-// for remnote
-// https://www.remnote.com/flashcards
-if (window.location.href.match(/https:\/\/www\.remnote\.com\/flashcards/)) {
-  console.log('Remnote detected');
-
-  // Add CSS class definition
-  const style = document.createElement('style');
-  style.textContent = `
-    .remnote-highlight {
-      background-color: yellow !important;
-      color: green !important;
-      font-weight: bold !important;
-      font-size: 18px !important;
-    }
-  `;
-  document.head.appendChild(style);
-
-  // Function to check and highlight 100% elements
-  function checkAndHighlightRemnoteElements() {
-    document.querySelectorAll('.font-medium').forEach(el => {
-      if (el.textContent.trim() === '100%') {
-        if (!el.classList.contains('remnote-highlight')) {
-          el.classList.add('remnote-highlight');
-        }
-      }
-    });
-  }
-
-  // Initial check
-  checkAndHighlightRemnoteElements();
-
-  // Register interval to check every 500 milliseconds
-  setInterval(checkAndHighlightRemnoteElements, 500);
-}
 
 // Move Collins Dictionary code inside IIFE
 if (window.location.href.match(
