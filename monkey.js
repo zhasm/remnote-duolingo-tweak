@@ -105,32 +105,6 @@ GM_addStyle(`
           background-color: #4a90e2 !important;
           color: white !important;
       }
-
-      /* Style for line breaks after audio buttons */
-      div[dir="ltr"] > span + br {
-          content: '';
-          display: block;
-          margin-top: 8px;
-          margin-bottom: 8px;
-          line-height: 1.2;
-      }
-
-      /* Ensure consistent spacing around spans */
-      div[dir="ltr"] > span {
-          display: inline-block;
-          margin-bottom: 4px;
-      }
-
-      /* Add spacing after French spans */
-      span[lang="fr"]::after {
-          content: ' ';
-          white-space: pre;
-      }
-
-      /* Ensure French spans don't collapse */
-      span[lang="fr"] {
-          display: inline-block;
-      }
   `);
 
 function highlightAudioControl(audioElement) {
