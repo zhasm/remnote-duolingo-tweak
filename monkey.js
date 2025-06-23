@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Audio Control Highlighter and Replay
 // @namespace    http://tampermonkey.net/
-// @version      1.044
+// @version      1.045
 // @description  Highlights audio controls and buttons, adds customizable
 // @author       Me
 // @match        https://www.remnote.com/*
@@ -143,6 +143,16 @@ function replayAudio(audioElement) {
 }
 
 function handleHotkey(event) {
+
+  // if i pressed, focus on textarea
+  if (event.key === 'i') {
+    const textarea = document.querySelector('#content textarea');
+    if (textarea && !textarea.hasFocus && event.key === 'i') {
+      textarea.focus();
+      event.preventDefault();
+    }
+  }
+
   // Skip if no hotkey is configured
   if (!hotkey.key && !hotkey.ctrlKey && !hotkey.altKey && !hotkey.metaKey &&
       !hotkey.shiftKey) {
@@ -897,4 +907,5 @@ function setupTreeObserver() {
 
 // Start observing with initial delay
 setTimeout(setupTreeObserver, 2000);
+
 })();
