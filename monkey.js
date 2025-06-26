@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Audio Control Highlighter and Replay
 // @namespace    http://tampermonkey.net/
-// @version      1.045
+// @version      1.046
 // @description  Highlights audio controls and buttons, adds customizable
 // @author       Me
 // @match        https://www.remnote.com/*
@@ -904,6 +904,178 @@ function setupTreeObserver() {
     setTimeout(setupTreeObserver, 2000);
   }
 }
+
+// for duolingo.com
+function setupDuolingoKeybindsAndBadges() {
+  if (!window.location.hostname.includes('duolingo.com')) return;
+
+  // Configuration - Define all button selectors here
+  const BUTTON_SELECTORS = [
+    'div[data-test="word-bank"] button[aria-disabled="false"]'
+    ,'div[data-test="stories-element"] button[data-test="stories-choice"]'
+  ];
+
+  // Track current button mappings for both types
+  const buttonMaps = {
+    original: new Map(),
+    new: new Map()
+  };
+
+
+  // Store last known button references for change detection
+  let lastButtonRefs = [];
+
+  // Unified function to setup labels and keybinds
+  function setupButtonLabelsAndKeybinds(force = false) {
+    // Gather current button references
+    const currentButtonRefs = BUTTON_SELECTORS.flatMap(selector =>
+      Array.from(document.querySelectorAll(selector))
+    );
+    // Only rebuild if the set of buttons has changed or force is true
+    if (!force && currentButtonRefs.length === lastButtonRefs.length && currentButtonRefs.every((btn, i) => btn === lastButtonRefs[i])) {
+      return;
+    }
+    lastButtonRefs = currentButtonRefs;
+    console.log('[Keybind] Rebuilding all button mappings...');
+    // Clear previous state
+    document.querySelectorAll('.kb-badge').forEach(badge => badge.remove());
+    buttonMaps.original.clear();
+    buttonMaps.new.clear();
+    // Process all buttons together for correct indexing
+    const allButtons = BUTTON_SELECTORS.flatMap(selector => Array.from(document.querySelectorAll(selector)));
+    const uniqueButtons = Array.from(new Set(allButtons));
+    const filteredButtons = uniqueButtons
+      .filter(button => {
+        const btnText = button.textContent.trim();
+        return btnText.length > 0 && !/^[0-9]/.test(btnText);
+      })
+      .slice(0, 10);
+    filteredButtons.forEach((button, buttonIndex) => {
+      const buttonType = button.matches(BUTTON_SELECTORS[1]) ? 'new' : 'original';
+      const btnText = button.textContent.trim();
+      const label = buttonIndex < 9 ? (buttonIndex + 1).toString() : '0';
+      // Add visual badge
+      const badge = document.createElement('span');
+      badge.className = `kb-badge kb-badge-${buttonType}`;
+      badge.textContent = label;
+      badge.style.cssText = `
+          position: absolute;
+          top: -5px;
+          left: -5px;
+          background: ${buttonType === 'original' ? '#555' : '#7d3c98'};
+          color: white;
+          border-radius: 50%;
+          width: 18px;
+          height: 18px;
+          font-size: 11px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          pointer-events: none;
+          font-family: monospace;
+        `;
+      button.style.position = 'relative';
+      button.appendChild(badge);
+      // Map key to current button reference
+      buttonMaps[buttonType].set(label, button);
+      console.log(`[Keybind] Mapped ${buttonType} button ${label} to "${btnText}"`);
+    });
+  }
+
+  // Unified keyboard handler
+  function handleKeyPress(e) {
+    if (/^[0-9]$/.test(e.key)) {
+      const key = e.key === '0' ? '0' : e.key;
+      // Try original buttons first, then new buttons
+      const button = buttonMaps.original.get(key) || buttonMaps.new.get(key);
+      if (button) {
+        const buttonType = buttonMaps.original.has(key) ? 'original' : 'new';
+        console.log(`[Keybind] Clicking ${buttonType} button mapped to ${key}: "${button.textContent.trim()}"`);
+        e.stopImmediatePropagation();
+        e.preventDefault();
+        button.dispatchEvent(new MouseEvent('click', {
+          bubbles: true,
+          cancelable: true
+        }));
+        setTimeout(() => setupButtonLabelsAndKeybinds(true), 50);
+      }
+    }
+  }
+
+  // Initialization
+  function initialize() {
+    document.removeEventListener('keydown', handleKeyPress, true);
+    window.removeEventListener('keydown', handleKeyPress, true);
+    document.addEventListener('keydown', handleKeyPress, true);
+    window.addEventListener('keydown', handleKeyPress, true);
+    setupButtonLabelsAndKeybinds(true);
+    // Compact refresh button (unchanged)
+    if (!document.getElementById('kb-refresh-btn')) {
+      const btn = document.createElement('button');
+      btn.id = 'kb-refresh-btn';
+      btn.title = 'Refresh Keybinds (Debug)';
+      btn.innerHTML = '🔁';
+      btn.style.cssText = `
+        position: fixed;
+        bottom: 10px;
+        right: 10px;
+        z-index: 9999;
+        width: 24px;
+        height: 24px;
+        padding: 0;
+        border-radius: 50%;
+        background: #2196F3;
+        color: white;
+        border: none;
+        cursor: pointer;
+        font-size: 14px;
+        line-height: 24px;
+        text-align: center;
+        overflow: hidden;
+        white-space: nowrap;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        opacity: 0.7;
+      `;
+      btn.addEventListener('mouseenter', () => {
+        btn.style.width = '120px';
+        btn.style.borderRadius = '4px';
+        btn.innerHTML = 'Refresh Keybinds';
+        btn.style.opacity = '1';
+      });
+      btn.addEventListener('mouseleave', () => {
+        btn.style.width = '24px';
+        btn.style.borderRadius = '50%';
+        btn.innerHTML = '🔁';
+        btn.style.opacity = '0.7';
+      });
+      btn.addEventListener('click', () => setupButtonLabelsAndKeybinds(true));
+      document.body.appendChild(btn);
+      setTimeout(() => {
+        btn.style.opacity = '0.3';
+        btn.style.transform = 'scale(0.9)';
+      }, 3000);
+    }
+  }
+
+  // Start when ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initialize);
+  } else {
+    initialize();
+  }
+
+  // Watch for DOM changes, debounce and only rebuild if changed
+  let debounceTimeout = null;
+  const observer = new MutationObserver(() => {
+    clearTimeout(debounceTimeout);
+    debounceTimeout = setTimeout(() => setupButtonLabelsAndKeybinds(false), 150);
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
+}
+
+// Register for duolingo.com only
+setupDuolingoKeybindsAndBadges();
 
 // Start observing with initial delay
 setTimeout(setupTreeObserver, 2000);
