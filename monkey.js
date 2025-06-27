@@ -143,7 +143,6 @@ function replayAudio(audioElement) {
 }
 
 function handleHotkey(event) {
-
   // if i pressed, focus on textarea
   if (event.key === 'i') {
     const textarea = document.querySelector('#content textarea');
@@ -275,13 +274,16 @@ initTextArea();
 function initRemnoteFlashcards() {
   const currentUrl = window.location.href;
   const isFlashcardsPage = currentUrl.match(/https:\/\/www\.remnote\.com/);
-  
-  log(LOG_LEVELS.DEBUG, '[initRemnoteFlashcards] Checking Remnote flashcards URL:');
+
+  log(LOG_LEVELS.DEBUG,
+      '[initRemnoteFlashcards] Checking Remnote flashcards URL:');
   log(LOG_LEVELS.DEBUG, '[initRemnoteFlashcards] Current URL:', currentUrl);
-  log(LOG_LEVELS.DEBUG, '[initRemnoteFlashcards] Regex match result:', isFlashcardsPage);
-  
+  log(LOG_LEVELS.DEBUG,
+      '[initRemnoteFlashcards] Regex match result:', isFlashcardsPage);
+
   if (!isFlashcardsPage) {
-    log(LOG_LEVELS.INFO, '[initRemnoteFlashcards] Not on Remnote flashcards page, skipping initialization');
+    log(LOG_LEVELS.INFO,
+        '[initRemnoteFlashcards] Not on Remnote flashcards page, skipping initialization');
     return;
   }
 
@@ -302,12 +304,16 @@ function initRemnoteFlashcards() {
         }
       `;
       document.head.appendChild(style);
-      log(LOG_LEVELS.INFO, '[initRemnoteFlashcards] Remnote highlight CSS added successfully');
+      log(LOG_LEVELS.INFO,
+          '[initRemnoteFlashcards] Remnote highlight CSS added successfully');
     } catch (error) {
-      log(LOG_LEVELS.INFO, '[initRemnoteFlashcards] Failed to add Remnote highlight CSS:', error);
+      log(LOG_LEVELS.INFO,
+          '[initRemnoteFlashcards] Failed to add Remnote highlight CSS:',
+          error);
     }
   } else {
-    log(LOG_LEVELS.DEBUG, '[initRemnoteFlashcards] Remnote highlight CSS already exists');
+    log(LOG_LEVELS.DEBUG,
+        '[initRemnoteFlashcards] Remnote highlight CSS already exists');
   }
 
   // Function to check and highlight 100% elements
@@ -315,25 +321,34 @@ function initRemnoteFlashcards() {
     try {
       const elements = document.querySelectorAll('.font-medium');
       let highlightedCount = 0;
-      
+
       elements.forEach(el => {
-        if (el.textContent.trim() === '100%' && !initializedRemnoteElements.has(el)) {
+        if (el.textContent.trim() === '100%' &&
+            !initializedRemnoteElements.has(el)) {
           try {
             el.classList.add('remnote-highlight');
             initializedRemnoteElements.add(el);
             highlightedCount++;
-            log(LOG_LEVELS.DEBUG, '[initRemnoteFlashcards] Remnote element highlighted:', el.textContent);
+            log(LOG_LEVELS.DEBUG,
+                '[initRemnoteFlashcards] Remnote element highlighted:',
+                el.textContent);
           } catch (error) {
-            log(LOG_LEVELS.INFO, '[initRemnoteFlashcards] Failed to highlight element:', error, 'Element:', el);
+            log(LOG_LEVELS.INFO,
+                '[initRemnoteFlashcards] Failed to highlight element:', error,
+                'Element:', el);
           }
         }
       });
-      
+
       if (highlightedCount > 0) {
-        log(LOG_LEVELS.INFO, `[initRemnoteFlashcards] Highlighted ${highlightedCount} new Remnote elements`);
+        log(LOG_LEVELS.INFO,
+            `[initRemnoteFlashcards] Highlighted ${
+                highlightedCount} new Remnote elements`);
       }
     } catch (error) {
-      log(LOG_LEVELS.INFO, '[initRemnoteFlashcards] Failed to check and highlight Remnote elements:', error);
+      log(LOG_LEVELS.INFO,
+          '[initRemnoteFlashcards] Failed to check and highlight Remnote elements:',
+          error);
     }
   }
 
@@ -341,18 +356,23 @@ function initRemnoteFlashcards() {
   try {
     checkAndHighlightRemnoteElements();
   } catch (error) {
-    log(LOG_LEVELS.INFO, '[initRemnoteFlashcards] Failed during initial Remnote check:', error);
+    log(LOG_LEVELS.INFO,
+        '[initRemnoteFlashcards] Failed during initial Remnote check:', error);
   }
 
   // Register interval to check every 500 milliseconds
   try {
     setInterval(checkAndHighlightRemnoteElements, 500);
-    log(LOG_LEVELS.INFO, '[initRemnoteFlashcards] Remnote flashcards interval registered successfully');
+    log(LOG_LEVELS.INFO,
+        '[initRemnoteFlashcards] Remnote flashcards interval registered successfully');
   } catch (error) {
-    log(LOG_LEVELS.INFO, '[initRemnoteFlashcards] Failed to register Remnote flashcards interval:', error);
+    log(LOG_LEVELS.INFO,
+        '[initRemnoteFlashcards] Failed to register Remnote flashcards interval:',
+        error);
   }
 
-  log(LOG_LEVELS.INFO, '[initRemnoteFlashcards] Remnote flashcards initialization complete');
+  log(LOG_LEVELS.INFO,
+      '[initRemnoteFlashcards] Remnote flashcards initialization complete');
 }
 
 initRemnoteFlashcards();
@@ -911,15 +931,12 @@ function setupDuolingoKeybindsAndBadges() {
 
   // Configuration - Define all button selectors here
   const BUTTON_SELECTORS = [
-    'div[data-test="word-bank"] button[aria-disabled="false"]'
-    ,'div[data-test="stories-element"] button[data-test="stories-choice"]'
+    'div[data-test="word-bank"] button[aria-disabled="false"]',
+    'div[data-test="stories-element"] button[data-test="stories-choice"]'
   ];
 
   // Track current button mappings for both types
-  const buttonMaps = {
-    original: new Map(),
-    new: new Map()
-  };
+  const buttonMaps = {original: new Map(), new: new Map()};
 
 
   // Store last known button references for change detection
@@ -928,11 +945,11 @@ function setupDuolingoKeybindsAndBadges() {
   // Unified function to setup labels and keybinds
   function setupButtonLabelsAndKeybinds(force = false) {
     // Gather current button references
-    const currentButtonRefs = BUTTON_SELECTORS.flatMap(selector =>
-      Array.from(document.querySelectorAll(selector))
-    );
+    const currentButtonRefs = BUTTON_SELECTORS.flatMap(
+        selector => Array.from(document.querySelectorAll(selector)));
     // Only rebuild if the set of buttons has changed or force is true
-    if (!force && currentButtonRefs.length === lastButtonRefs.length && currentButtonRefs.every((btn, i) => btn === lastButtonRefs[i])) {
+    if (!force && currentButtonRefs.length === lastButtonRefs.length &&
+        currentButtonRefs.every((btn, i) => btn === lastButtonRefs[i])) {
       return;
     }
     lastButtonRefs = currentButtonRefs;
@@ -942,16 +959,27 @@ function setupDuolingoKeybindsAndBadges() {
     buttonMaps.original.clear();
     buttonMaps.new.clear();
     // Process all buttons together for correct indexing
-    const allButtons = BUTTON_SELECTORS.flatMap(selector => Array.from(document.querySelectorAll(selector)));
+    const allButtons = BUTTON_SELECTORS.flatMap(
+        selector => Array.from(document.querySelectorAll(selector)));
     const uniqueButtons = Array.from(new Set(allButtons));
-    const filteredButtons = uniqueButtons
-      .filter(button => {
-        const btnText = button.textContent.trim();
-        return btnText.length > 0 && !/^[0-9]/.test(btnText);
-      })
-      .slice(0, 10);
+    const filteredButtons =
+        uniqueButtons
+            .filter((button, i) => {
+              const btnText = button.textContent.trim();
+              const isStoriesChoice = button.matches(
+                  'div[data-test="stories-element"] button[data-test="stories-choice"]');
+              if (btnText.length === 0 && !isStoriesChoice) {
+                return false;
+              }
+              if (/^[0-9]/.test(btnText)) {
+                return false;
+              }
+              return true;
+            })
+            .slice(0, 10);
     filteredButtons.forEach((button, buttonIndex) => {
-      const buttonType = button.matches(BUTTON_SELECTORS[1]) ? 'new' : 'original';
+      const buttonType =
+          button.matches(BUTTON_SELECTORS[1]) ? 'new' : 'original';
       const btnText = button.textContent.trim();
       const label = buttonIndex < 9 ? (buttonIndex + 1).toString() : '0';
       // Add visual badge
@@ -978,7 +1006,6 @@ function setupDuolingoKeybindsAndBadges() {
       button.appendChild(badge);
       // Map key to current button reference
       buttonMaps[buttonType].set(label, button);
-      console.log(`[Keybind] Mapped ${buttonType} button ${label} to "${btnText}"`);
     });
   }
 
@@ -990,13 +1017,12 @@ function setupDuolingoKeybindsAndBadges() {
       const button = buttonMaps.original.get(key) || buttonMaps.new.get(key);
       if (button) {
         const buttonType = buttonMaps.original.has(key) ? 'original' : 'new';
-        console.log(`[Keybind] Clicking ${buttonType} button mapped to ${key}: "${button.textContent.trim()}"`);
+        console.log(`[Keybind] Clicking ${buttonType} button mapped to ${
+            key}: "${button.textContent.trim()}"`);
         e.stopImmediatePropagation();
         e.preventDefault();
-        button.dispatchEvent(new MouseEvent('click', {
-          bubbles: true,
-          cancelable: true
-        }));
+        button.dispatchEvent(
+            new MouseEvent('click', {bubbles: true, cancelable: true}));
         setTimeout(() => setupButtonLabelsAndKeybinds(true), 50);
       }
     }
@@ -1069,9 +1095,10 @@ function setupDuolingoKeybindsAndBadges() {
   let debounceTimeout = null;
   const observer = new MutationObserver(() => {
     clearTimeout(debounceTimeout);
-    debounceTimeout = setTimeout(() => setupButtonLabelsAndKeybinds(false), 150);
+    debounceTimeout =
+        setTimeout(() => setupButtonLabelsAndKeybinds(false), 150);
   });
-  observer.observe(document.body, { childList: true, subtree: true });
+  observer.observe(document.body, {childList: true, subtree: true});
 }
 
 // Register for duolingo.com only
@@ -1079,5 +1106,4 @@ setupDuolingoKeybindsAndBadges();
 
 // Start observing with initial delay
 setTimeout(setupTreeObserver, 2000);
-
 })();
