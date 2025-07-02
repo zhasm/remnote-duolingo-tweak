@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Audio Control Highlighter and Replay
 // @namespace    http://tampermonkey.net/
-// @version      1.047
+// @version      1.048
 // @description  Highlights audio controls and buttons, adds customizable
 // @author       Me
 // @match        https://www.remnote.com/*
@@ -142,75 +142,16 @@ function replayAudio(audioElement) {
   }
 }
 
-function handleHotkey(event) {
-  // Detailed debug log for every keydown event
-  const ctrlLeft = event.getModifierState && event.getModifierState('ControlLeft');
-  const ctrlRight = event.getModifierState && event.getModifierState('ControlRight');
-  const shiftLeft = event.getModifierState && event.getModifierState('ShiftLeft');
-  const shiftRight = event.getModifierState && event.getModifierState('ShiftRight');
-  const altLeft = event.getModifierState && event.getModifierState('AltLeft');
-  const altRight = event.getModifierState && event.getModifierState('AltRight');
-  const metaLeft = event.getModifierState && event.getModifierState('MetaLeft');
-  const metaRight = event.getModifierState && event.getModifierState('MetaRight');
+// Reusable hotkey match function
+function isHotkeyMatch(event, hotkey) {
+  // Primary group
+  const primaryMatch =
+    (hotkey.key ? event.key.toLowerCase() === hotkey.key.toLowerCase() : true) &&
+    event.ctrlKey === hotkey.ctrlKey && event.altKey === hotkey.altKey &&
+    event.metaKey === hotkey.metaKey && event.shiftKey === hotkey.shiftKey;
 
-  function sideState(left, right) {
-    if (left && right) return 'both';
-    if (left) return 'left';
-    if (right) return 'right';
-    return 'none';
-  }
-
-  log(LOG_LEVELS.DEBUG, '[Hotkey Event] Keydown:', {
-    key: event.key,
-    code: event.code,
-    ctrlKey: event.ctrlKey,
-    shiftKey: event.shiftKey,
-    altKey: event.altKey,
-    metaKey: event.metaKey,
-    ctrl: sideState(ctrlLeft, ctrlRight),
-    shift: sideState(shiftLeft, shiftRight),
-    alt: sideState(altLeft, altRight),
-    meta: sideState(metaLeft, metaRight),
-    ctrlLeft, ctrlRight, shiftLeft, shiftRight, altLeft, altRight, metaLeft, metaRight
-  });
-
-  // if i pressed, focus on textarea
-  if (event.key === 'i') {
-    const textarea = document.querySelector('#content textarea');
-    if (textarea && !textarea.hasFocus && event.key === 'i') {
-      textarea.focus();
-      event.preventDefault();
-    }
-  }
-
-  // Skip if no hotkey is configured
-  if (!hotkey.key && !hotkey.ctrlKey && !hotkey.altKey && !hotkey.metaKey &&
-      !hotkey.shiftKey) {
-    return;
-  }
-
-  
-  // Check if the event matches the configured hotkey
-  if ((hotkey.key ? event.key.toLowerCase() === hotkey.key.toLowerCase() :
-                    true) &&
-      event.ctrlKey === hotkey.ctrlKey && event.altKey === hotkey.altKey &&
-      event.metaKey === hotkey.metaKey && event.shiftKey === hotkey.shiftKey) {
-    log(LOG_LEVELS.DEBUG, 'Hotkey detected');
-    const audioElement = document.querySelector('audio');
-    const button = document.querySelector('span[dir="ltr"] button');
-
-    if (audioElement) {
-      log(LOG_LEVELS.INFO, 'Replaying audio');
-      replayAudio(audioElement);
-    } else if (button) {
-      log(LOG_LEVELS.INFO, 'Clicking button');
-      button.click();
-    } else {
-      log(LOG_LEVELS.DEBUG, 'No audio or button found');
-    }
-  }
   // Special case: only ShiftRight pressed, all other modifiers false
-  else if (
+  const specialCase = (
     event.code === 'ShiftRight' &&
     event.key === 'Shift' &&
     event.shiftKey === true &&
@@ -226,8 +167,29 @@ function handleHotkey(event) {
       !event.getModifierState('AltRight') &&
       !event.getModifierState('MetaLeft') &&
       !event.getModifierState('MetaRight'))
-  ) {
-    log(LOG_LEVELS.DEBUG, '[Special Case] Only ShiftRight pressed, triggering hotkey event');
+  );
+
+  return primaryMatch || specialCase;
+}
+
+function handleHotkey(event) {
+
+  // if i pressed, focus on textarea
+  if (event.key === 'i') {
+    const textarea = document.querySelector('#content textarea');
+    if (textarea && !textarea.hasFocus && event.key === 'i') {
+      textarea.focus();
+      event.preventDefault();
+    }
+  }
+
+  // Skip if no hotkey is configured
+  if (!hotkey.key && !hotkey.ctrlKey && !hotkey.altKey && !hotkey.metaKey && !hotkey.shiftKey && !(hotkey.secondary && Object.values(hotkey.secondary).some(Boolean))) {
+    return;
+  }
+
+  if (isHotkeyMatch(event, hotkey)) {
+    log(LOG_LEVELS.DEBUG, 'Hotkey detected');
     const audioElement = document.querySelector('audio');
     const button = document.querySelector('span[dir="ltr"] button');
 
@@ -302,7 +264,6 @@ function initTextArea() {
 
 function setupTextareaListener(textarea) {
   textarea.addEventListener('keydown', (event) => {
-    // Log the keydown event
     log(LOG_LEVELS.INFO, '[✅initTextArea] Keydown event detected:', {
       key: event.key,
       ctrlKey: event.ctrlKey,
@@ -311,23 +272,15 @@ function setupTextareaListener(textarea) {
       metaKey: event.metaKey
     });
 
-    // Check if the pressed keys match the global hotkey configuration
-    if ((hotkey.key ? event.key.toLowerCase() === hotkey.key.toLowerCase() :
-                      true) &&
-        event.ctrlKey === hotkey.ctrlKey && event.altKey === hotkey.altKey &&
-        event.metaKey === hotkey.metaKey &&
-        event.shiftKey === hotkey.shiftKey) {
-      log(LOG_LEVELS.INFO,
-          '[✅initTextArea] Global hotkey combination pressed in textarea');
-      // Trigger the global hotkey handler
+    // Use the reusable hotkey match function
+    if (isHotkeyMatch(event, hotkey)) {
+      log(LOG_LEVELS.INFO, '[✅initTextArea] Global hotkey combination pressed in textarea');
       handleHotkey(event);
-      // Prevent default behavior to avoid any conflicts
       event.preventDefault();
     }
   });
 
-  log(LOG_LEVELS.INFO,
-      '[✅initTextArea] Event listener added successfully with global hotkey configuration');
+  log(LOG_LEVELS.INFO, '[✅initTextArea] Event listener added successfully with global hotkey configuration');
 }
 
 // Add event listener for the hotkey
