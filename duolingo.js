@@ -12,12 +12,6 @@
 // @grant        GM_registerMenuCommand
 // ==/UserScript==
 
-// TODO split intoplugins:
-// 1 for remnote
-// 2 for duolingo
-// 3 for collins dictionary
-// ignore the rest sites.
-
 (function() {
 'use strict';
 
