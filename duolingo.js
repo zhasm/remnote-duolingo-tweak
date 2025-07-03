@@ -46,6 +46,13 @@ const defaultHotkey = {
 
 async function copyToClipboard(text) {
   try {
+    // Check current clipboard content first
+    const currentClipboard = await navigator.clipboard.readText();
+    if (currentClipboard === text) {
+      console.log('⚠ IGR DUP:', text);
+      return;
+    }
+
     await navigator.clipboard.writeText(text);
     console.log('✅✅ Text copied to clipboard:', text);
   } catch (err) {
