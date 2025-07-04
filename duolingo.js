@@ -504,151 +504,239 @@ function setupDuolingoKeybindsAndBadges() {
 // Register for duolingo.com only
 setupDuolingoKeybindsAndBadges();
 
-// Function to register click-to-copy on innermost div, robust for dynamic
-// content
-function registerInnermostDivClickCopy() {
-  // Attach click handlers to all relevant divs inside challenge nodes
-  function attachHandlers() {
-    document
-        .querySelectorAll(
-            'div[data-test*="challenge"] div[dir="ltr"]:not([click_handled="true"])')
-        .forEach(node => {
-          node.addEventListener('click', () => {
-            let ele = node.querySelectorAll('span[aria-hidden="true"]');
-            let textContent =
-                Array.from(ele).map(span => span.textContent).join('');
-            if (!textContent) {
-              console.log('🦉 1st try failed.');
-              ele = node.querySelectorAll('span[data-test]');
-              textContent = Array.from(ele)
-                                .map(span => span.textContent)
-                                .join(' ')
-                                .trim();
-              // Only add punctuation if textContent is not empty
-              if (textContent && !/[.!?]$/.test(textContent)) {
-                textContent += '.';
-              }
-            }
-            if (!textContent) {
-              console.log('🦉 2nd try failed.');
-              return;
-            }
+// Statistics tracking system
+const STATS_KEYS = {
+  INNERMOST_DIV_CLICK: 'duolingo_stats_innermost_div_click',
+  CORRECT_SOLUTION_CLICK: 'duolingo_stats_correct_solution_click',
+  TAP_COMPLETE: 'duolingo_stats_tap_complete'
+};
 
-            if (typeof copyToClipboard === 'function') {
-              copyToClipboard(textContent);
-            } else if (navigator.clipboard) {
-              navigator.clipboard.writeText(textContent);
-            }
-            showNotification(`1️⃣🦉: [${textContent}]`);
-          });
-          node.setAttribute('click_handled', 'true');
-        });
+function getStats(key) {
+  return parseInt(localStorage.getItem(key) || '0');
+}
+
+function incrementStats(key) {
+  const current = getStats(key);
+  const newValue = current + 1;
+  localStorage.setItem(key, newValue.toString());
+  return newValue;
+}
+
+function logStats(key, action) {
+  const count = incrementStats(key);
+  console.log(`📊 [${action}] Triggered ${count} times`);
+}
+
+// Generic click handler factory for dynamic content
+function createDynamicClickHandler(config) {
+  const {
+    selector,
+    textExtractor,
+    notificationPrefix,
+    preventDuplicates = true,
+    attributeName = 'click_handled',
+    statsKey
+  } = config;
+
+  function attachHandlers() {
+    const elements = document.querySelectorAll(selector);
+    elements.forEach(element => {
+      // Skip if already handled and preventDuplicates is true
+      if (preventDuplicates && element.getAttribute(attributeName) === 'true') {
+        return;
+      }
+
+      element.addEventListener('click', async () => {
+        // Track statistics
+        if (statsKey) {
+          logStats(statsKey, notificationPrefix);
+        }
+
+        const textContent = textExtractor(element);
+
+        if (!textContent) {
+          console.log(`${notificationPrefix} No text found`);
+          return;
+        }
+
+        try {
+          await copyToClipboard(textContent);
+          showNotification(`${notificationPrefix}: [${textContent}]`);
+        } catch (error) {
+          console.error(`${notificationPrefix} Copy failed:`, error);
+        }
+      });
+
+      if (preventDuplicates) {
+        element.setAttribute(attributeName, 'true');
+      }
+    });
   }
+
   // Initial attach
   attachHandlers();
+
   // Observe DOM changes for dynamic content
   const observer = new MutationObserver(() => {
     attachHandlers();
   });
   observer.observe(document.body, {childList: true, subtree: true});
+
+  return {attachHandlers, observer};
 }
 
-// Dynamically register on page load
-registerInnermostDivClickCopy();
+// Function to register click-to-copy on innermost div, robust for dynamic
+// content
+function registerInnermostDivClickCopy() {
+  createDynamicClickHandler({
+    selector:
+        'div[data-test*="challenge"] div[dir="ltr"]:not([click_handled="true"])',
+    textExtractor: (node) => {
+      // First try: span[aria-hidden="true"]
+      let ele = node.querySelectorAll('span[aria-hidden="true"]');
+      let textContent = Array.from(ele).map(span => span.textContent).join('');
+
+      if (!textContent) {
+        console.log('🦉 1st try failed.');
+        // Second try: span[data-test]
+        ele = node.querySelectorAll('span[data-test]');
+        textContent =
+            Array.from(ele).map(span => span.textContent).join(' ').trim();
+        // Only add punctuation if textContent is not empty
+        if (textContent && !/[.!?]$/.test(textContent)) {
+          textContent += '.';
+        }
+      }
+
+      return textContent;
+    },
+    notificationPrefix: '1️⃣🦉',
+    statsKey: STATS_KEYS.INNERMOST_DIV_CLICK
+  });
+}
 
 // Function to register click event on parent of <h2>Correct solution:</h2>
 function registerCorrectSolutionClickLogger() {
-  const attachedZones = new WeakMap();
-  function attachHandler() {
-    // Query all h2 elements within div#session/PlayerFooter
-    const footers = document.querySelectorAll('div#session\\/PlayerFooter h2');
-    footers.forEach(footer => {
+  createDynamicClickHandler({
+    selector: 'div#session\\/PlayerFooter h2',
+    textExtractor: (footer) => {
       const answerzone = footer.parentElement;
-      if (answerzone) {
-        // Prevent duplicate listeners
-        if (attachedZones.get(answerzone)) return;
-        const handler = () => {
-          // Query the first child div within the answerzone
-          const solutionDiv = answerzone.querySelector('div');
-          const ele =
-              solutionDiv?.textContent.trim().replace(/Meaning:\s*/g, '');
-          if (ele) {
-            if (typeof copyToClipboard === 'function') {
-              copyToClipboard(ele);
-            } else if (navigator.clipboard) {
-              navigator.clipboard.writeText(ele);
-            }
-            showNotification(`2️⃣📋: [${ele}]`);
-          } else {
-            showNotification('No solution text found.');
-          }
-        };
-        answerzone.addEventListener('click', handler);
-        attachedZones.set(answerzone, true);
-      }
-    });
-  }
-  // Initial attach
-  attachHandler();
-  // Observe DOM changes
-  const observer = new MutationObserver(() => {
-    attachHandler();
+      if (!answerzone) return '';
+
+      const solutionDiv = answerzone.querySelector('div');
+      return solutionDiv?.textContent.trim().replace(/Meaning:\s*/g, '') || '';
+    },
+    notificationPrefix: '2️⃣📋',
+    preventDuplicates: false,  // We'll handle duplicates manually with WeakMap
+    attributeName: 'solution_click_handled',
+    statsKey: STATS_KEYS.CORRECT_SOLUTION_CLICK
   });
-  observer.observe(document.body, {childList: true, subtree: true});
 }
 
-// Register on page load
-registerCorrectSolutionClickLogger();
+// Generic content processor factory for automatic processing
+function createContentProcessor(config) {
+  const {
+    selector,
+    contentExtractor,
+    notificationPrefix,
+    processOnChange = true,
+    statsKey
+  } = config;
 
-// Function to register tap complete challenge processing
-function registerTapComplete() {
-  let lastProcessedTokens = null;
+  let lastProcessedContent = null;
 
-  function processTapComplete() {
-    const hintTokens = document.querySelectorAll(
-        'div[data-test="challenge challenge-tapComplete"] span[aria-hidden="true"], div[data-test="challenge challenge-tapComplete"] span > span > button[data-test]');
+  function processContent() {
+    const elements = document.querySelectorAll(selector);
+    const currentContent = contentExtractor(elements);
 
-    // Check if tokens have changed to avoid unnecessary processing
-    const currentTokens =
-        Array.from(hintTokens).map(el => el.textContent).join('');
-    if (currentTokens === lastProcessedTokens) {
+    // Check if content has changed to avoid unnecessary processing
+    if (processOnChange && currentContent === lastProcessedContent) {
       return;
     }
-    lastProcessedTokens = currentTokens;
+    lastProcessedContent = currentContent;
 
-    let result = '';
-
-    Array.from(hintTokens).forEach(element => {
-      if (element.matches('span[aria-hidden="true"]')) {
-        // Handle span[aria-hidden="true"] case
-        result += element.textContent;
-      } else if (element.matches('span > span > button[data-test]')) {
-        // Handle button case - check if parent span has multiple classes
-        const parentSpanClass = element.parentElement?.parentElement?.className;
-        if (parentSpanClass && !parentSpanClass.includes(' ')) {
-          result += element.textContent;
-        }
+    if (currentContent) {
+      // Track statistics
+      if (statsKey) {
+        logStats(statsKey, notificationPrefix);
       }
-    });
-    const finalResult = result.trim();
-    // Copy result to clipboard and show notification
-    if (finalResult) {
-      copyToClipboard(finalResult);
-      console.log('📋 Copied tap complete result:', finalResult);
-      showNotification(`3️⃣🐟[${finalResult}]`);
+
+      copyToClipboard(currentContent);
+      console.log(`${notificationPrefix} Copied result:`, currentContent);
+      showNotification(`${notificationPrefix}[${currentContent}]`);
     }
   }
 
   // Initial processing
-  processTapComplete();
+  processContent();
 
   // Observe DOM changes for dynamic content
   const observer = new MutationObserver(() => {
-    processTapComplete();
+    processContent();
   });
   observer.observe(document.body, {childList: true, subtree: true});
+
+  return {processContent, observer};
 }
 
-// Register tap complete function
+// Function to register tap complete challenge processing
+function registerTapComplete() {
+  createContentProcessor({
+    selector:
+        'div[data-test="challenge challenge-tapComplete"] span[aria-hidden="true"], div[data-test="challenge challenge-tapComplete"] span > span > button[data-test]',
+    contentExtractor: (hintTokens) => {
+      let result = '';
+
+      Array.from(hintTokens).forEach(element => {
+        if (element.matches('span[aria-hidden="true"]')) {
+          // Handle span[aria-hidden="true"] case
+          result += element.textContent;
+        } else if (element.matches('span > span > button[data-test]')) {
+          // Handle button case - check if parent span has multiple classes
+          const parentSpanClass =
+              element.parentElement?.parentElement?.className;
+          if (parentSpanClass && !parentSpanClass.includes(' ')) {
+            result += element.textContent;
+          }
+        }
+      });
+
+      return result.trim();
+    },
+    notificationPrefix: '3️⃣🐟',
+    statsKey: STATS_KEYS.TAP_COMPLETE
+  });
+}
+
+// Function to display current statistics
+function displayStats() {
+  console.log('📊 === DUOLINGO PLUGIN STATISTICS ===');
+  console.log(`1️⃣🦉 Innermost Div Click: ${
+      getStats(STATS_KEYS.INNERMOST_DIV_CLICK)} times`);
+  console.log(`2️⃣📋 Correct Solution Click: ${
+      getStats(STATS_KEYS.CORRECT_SOLUTION_CLICK)} times`);
+  console.log(`3️⃣🐟 Tap Complete: ${getStats(STATS_KEYS.TAP_COMPLETE)} times`);
+  console.log('📊 ================================');
+}
+
+// Function to reset statistics
+function resetStats() {
+  Object.values(STATS_KEYS).forEach(key => {
+    localStorage.removeItem(key);
+  });
+  console.log('📊 Statistics reset');
+  displayStats();
+}
+
+// Add menu commands for statistics
+GM_registerMenuCommand('Show Statistics', displayStats);
+GM_registerMenuCommand('Reset Statistics', resetStats);
+
+// Register all handlers
+registerInnermostDivClickCopy();
+registerCorrectSolutionClickLogger();
 registerTapComplete();
+
+// Display initial statistics
+displayStats();
 })();
