@@ -171,6 +171,11 @@ function handleHotkey(event) {
     const textarea = document.querySelector('#content textarea');
     if (textarea && !textarea.hasFocus && event.key === 'i') {
       textarea.focus();
+      // Delay for 100ms and then execute the click
+      setTimeout(() => {
+        document.querySelector('div[id="close-button"]')?.click();
+      }, 50);
+
       event.preventDefault();
     }
   }
