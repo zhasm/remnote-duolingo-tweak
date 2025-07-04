@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Audio Control Highlighter and Replay [duolingo]
 // @namespace    http://tampermonkey.net/
-// @version      1.000
+// @version      1.001
 // @description  Highlights audio controls and buttons, adds customizable
 // @author       Me
 // @match        https://www.duolingo.com/*
@@ -353,7 +353,6 @@ function setupDuolingoKeybindsAndBadges() {
       return;
     }
     lastButtonRefs = currentButtonRefs;
-    console.log('[Keybind] Rebuilding all button mappings...');
     // Clear previous state
     document.querySelectorAll('.kb-badge').forEach(badge => badge.remove());
     buttonMaps.original.clear();
@@ -618,12 +617,11 @@ function registerInnermostDivClickCopy() {
 // Function to register click event on parent of <h2>Correct solution:</h2>
 function registerCorrectSolutionClickLogger() {
   createDynamicClickHandler({
-    selector: 'div#session\\/PlayerFooter h2',
+    selector: 'div#session\\/PlayerFooter div:has(> h2)',
     textExtractor: (footer) => {
-      const answerzone = footer.parentElement;
+      const answerzone = footer;
       if (!answerzone) return '';
-
-      const solutionDiv = answerzone.querySelector('div');
+      const solutionDiv = answerzone.querySelector('div div');
       return solutionDiv?.textContent.trim().replace(/Meaning:\s*/g, '') || '';
     },
     notificationPrefix: '2️⃣📋',
