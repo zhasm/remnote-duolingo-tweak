@@ -539,7 +539,7 @@ function registerInnermostDivClickCopy() {
             } else if (navigator.clipboard) {
               navigator.clipboard.writeText(textContent);
             }
-            showNotification(`🦉: [${textContent}]`);
+            showNotification(`1️⃣🦉: [${textContent}]`);
           });
           node.setAttribute('click_handled', 'true');
         });
@@ -578,7 +578,7 @@ function registerCorrectSolutionClickLogger() {
             } else if (navigator.clipboard) {
               navigator.clipboard.writeText(ele);
             }
-            showNotification(`📋: [${ele}]`);
+            showNotification(`2️⃣📋: [${ele}]`);
           } else {
             showNotification('No solution text found.');
           }
@@ -630,12 +630,12 @@ function registerTapComplete() {
         }
       }
     });
-
+    const finalResult = result.trim();
     // Copy result to clipboard and show notification
-    if (result.trim()) {
-      copyToClipboard(result.trim());
-      console.log('📋 Copied tap complete result:', result.trim());
-      showNotification(`Copied tap complete: [${result.trim()}]`);
+    if (finalResult) {
+      copyToClipboard(finalResult);
+      console.log('📋 Copied tap complete result:', finalResult);
+      showNotification(`3️⃣🐟[${finalResult}]`);
     }
   }
 
