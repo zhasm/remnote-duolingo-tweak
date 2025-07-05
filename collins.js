@@ -11,6 +11,8 @@
 // @grant        GM_addStyle
 // @grant        GM_registerMenuCommand
 // ==/UserScript==
+// TODO:
+// * [ ] click and copy verb table.
 
 (function() {
 'use strict';
