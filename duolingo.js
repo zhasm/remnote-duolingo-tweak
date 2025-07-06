@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Audio Control Highlighter and Replay [duolingo]
 // @namespace    http://tampermonkey.net/
-// @version      1.001
+// @version      1.002
 // @description  Highlights audio controls and buttons, adds customizable
 // @author       Me
 // @match        https://www.duolingo.com/*
@@ -11,6 +11,9 @@
 // @grant        GM_addStyle
 // @grant        GM_registerMenuCommand
 // ==/UserScript==
+
+// features:
+// * when Ctrl+M pressed, clicking "Can\'t speak now" button.
 
 (function() {
 'use strict';
@@ -734,7 +737,61 @@ GM_registerMenuCommand('Reset Statistics', resetStats);
 registerInnermostDivClickCopy();
 registerCorrectSolutionClickLogger();
 registerTapComplete();
+setupCantSpeakNowHotkey();
 
 // Display initial statistics
 displayStats();
+
+// Function to handle "Can't speak now" button with Ctrl+M hotkey
+function setupCantSpeakNowHotkey() {
+  log(LOG_LEVELS.DEBUG, 'Setting up "Can\'t speak now" hotkey handler');
+
+  // Function to check and setup the hotkey
+  function checkAndSetupHotkey() {
+    // Select the button element
+    const elm = document.querySelector('button[data-test="player-skip"]');
+
+    if (elm) {
+      // Check if the button has a span with the text "Can't speak now"
+      const span = elm.querySelector('span');
+      if (span && span.textContent === "Can't speak now") {
+        log(LOG_LEVELS.INFO, 'Found "Can\'t speak now" button, setting up Ctrl+M hotkey');
+
+        // Remove existing listener to prevent duplicates
+        document.removeEventListener('keydown', handleCantSpeakNowKeydown);
+
+        // Listen for keydown events
+        document.addEventListener('keydown', handleCantSpeakNowKeydown);
+      } else {
+        log(LOG_LEVELS.DEBUG, 'Button found but span text does not match "Can\'t speak now"');
+      }
+    } else {
+      log(LOG_LEVELS.DEBUG, 'No "player-skip" button found');
+    }
+  }
+
+  // Handler function for the keydown event
+  function handleCantSpeakNowKeydown(event) {
+    // Check if the Control key and 'm' key are pressed
+    if (event.ctrlKey && event.key === 'm') {
+      const elm = document.querySelector('button[data-test="player-skip"]');
+      if (elm) {
+        log(LOG_LEVELS.INFO, 'Ctrl+M pressed, clicking "Can\'t speak now" button');
+        elm.click(); // Trigger a click on the button
+        event.preventDefault(); // Prevent default browser behavior
+      }
+    }
+  }
+
+  // Initial check
+  checkAndSetupHotkey();
+
+  // Set up observer for dynamic content changes
+  const observer = new MutationObserver(() => {
+    checkAndSetupHotkey();
+  });
+  observer.observe(document.body, {childList: true, subtree: true});
+
+  log(LOG_LEVELS.INFO, 'Cant speak now hotkey observer setup complete');
+}
 })();
