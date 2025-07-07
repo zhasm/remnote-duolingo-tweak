@@ -381,7 +381,7 @@ function initRemnoteFlashcards() {
 
   // Register interval to check every 500 milliseconds
   try {
-    setInterval(checkAndHighlightRemnoteElements, 500);
+    setInterval(checkAndHighlightRemnoteElements, 10);
     log(LOG_LEVELS.INFO,
         '[initRemnoteFlashcards] Remnote flashcards interval registered successfully');
   } catch (error) {
