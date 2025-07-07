@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Audio Control Highlighter and Replay [duolingo]
 // @namespace    http://tampermonkey.net/
-// @version      1.002
+// @version      1.003
 // @description  Highlights audio controls and buttons, adds customizable
 // @author       Me
 // @match        https://www.duolingo.com/*
@@ -510,7 +510,8 @@ setupDuolingoKeybindsAndBadges();
 const STATS_KEYS = {
   INNERMOST_DIV_CLICK: 'duolingo_stats_innermost_div_click',
   CORRECT_SOLUTION_CLICK: 'duolingo_stats_correct_solution_click',
-  TAP_COMPLETE: 'duolingo_stats_tap_complete'
+  TAP_COMPLETE: 'duolingo_stats_tap_complete',
+  STORIES_ELEMENT_CLICK: 'duolingo_stats_stories_element_click'
 };
 
 function getStats(key) {
@@ -709,6 +710,23 @@ function registerTapComplete() {
   });
 }
 
+// Function to register click-to-copy for stories-element divs
+function registerStoriesElementClickCopy() {
+  createDynamicClickHandler({
+    selector:
+        'div[data-test="stories-element"]:not([stories_click_handled="true"])',
+    textExtractor: (element) => {
+      // Select all child divs with the class 'phrase'
+      const phrases = Array.from(element.querySelectorAll('div.phrase'));
+      // Join the text content of each phrase into a single string
+      return phrases.map(phrase => phrase.textContent).join('');
+    },
+    notificationPrefix: '4️⃣📚',
+    attributeName: 'stories_click_handled',
+    statsKey: STATS_KEYS.STORIES_ELEMENT_CLICK
+  });
+}
+
 // Function to display current statistics
 function displayStats() {
   console.log('📊 === DUOLINGO PLUGIN STATISTICS ===');
@@ -737,6 +755,7 @@ GM_registerMenuCommand('Reset Statistics', resetStats);
 registerInnermostDivClickCopy();
 registerCorrectSolutionClickLogger();
 registerTapComplete();
+registerStoriesElementClickCopy();
 setupCantSpeakNowHotkey();
 
 // Display initial statistics
@@ -754,8 +773,9 @@ function setupCantSpeakNowHotkey() {
     if (elm) {
       // Check if the button has a span with the text "Can't speak now"
       const span = elm.querySelector('span');
-      if (span && span.textContent === "Can't speak now") {
-        log(LOG_LEVELS.INFO, 'Found "Can\'t speak now" button, setting up Ctrl+M hotkey');
+      if (span && span.textContent === 'Can\'t speak now') {
+        log(LOG_LEVELS.INFO,
+            'Found "Can\'t speak now" button, setting up Ctrl+M hotkey');
 
         // Remove existing listener to prevent duplicates
         document.removeEventListener('keydown', handleCantSpeakNowKeydown);
@@ -763,7 +783,8 @@ function setupCantSpeakNowHotkey() {
         // Listen for keydown events
         document.addEventListener('keydown', handleCantSpeakNowKeydown);
       } else {
-        log(LOG_LEVELS.DEBUG, 'Button found but span text does not match "Can\'t speak now"');
+        log(LOG_LEVELS.DEBUG,
+            'Button found but span text does not match "Can\'t speak now"');
       }
     } else {
       log(LOG_LEVELS.DEBUG, 'No "player-skip" button found');
@@ -776,9 +797,10 @@ function setupCantSpeakNowHotkey() {
     if (event.ctrlKey && event.key === 'm') {
       const elm = document.querySelector('button[data-test="player-skip"]');
       if (elm) {
-        log(LOG_LEVELS.INFO, 'Ctrl+M pressed, clicking "Can\'t speak now" button');
-        elm.click(); // Trigger a click on the button
-        event.preventDefault(); // Prevent default browser behavior
+        log(LOG_LEVELS.INFO,
+            'Ctrl+M pressed, clicking "Can\'t speak now" button');
+        elm.click();             // Trigger a click on the button
+        event.preventDefault();  // Prevent default browser behavior
       }
     }
   }
