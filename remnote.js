@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Audio Control Highlighter and Replay [remnote]
 // @namespace    http://tampermonkey.net/
-// @version      1.000
+// @version      1.001
 // @description  Highlights audio controls and buttons, adds customizable
 // @author       Me
 // @match        https://www.remnote.com/*
@@ -189,7 +189,7 @@ function handleHotkey(event) {
 
   if (isHotkeyMatch(event, hotkey)) {
     log(LOG_LEVELS.DEBUG, 'Hotkey detected');
-    const audioElement = document.querySelector('audio');
+    const audioElement = [...document.querySelectorAll('audio')].pop();
     const button = document.querySelector('span[dir="ltr"] button');
 
     if (audioElement) {
