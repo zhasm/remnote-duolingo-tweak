@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Audio Control Highlighter and Replay [duolingo]
 // @namespace    http://tampermonkey.net/
-// @version      1.003
+// @version      1.004
 // @description  Highlights audio controls and buttons, adds customizable
 // @author       Me
 // @match        https://www.duolingo.com/*
@@ -196,14 +196,21 @@ function handleHotkey(event) {
     log(LOG_LEVELS.DEBUG, 'Hotkey detected');
     const audioElement = document.querySelector('audio');
     const button = document.querySelector('span[dir="ltr"] button');
+    const storyDiv = document.querySelector('div.undefined div')
 
     if (audioElement) {
       log(LOG_LEVELS.INFO, 'Replaying audio');
       replayAudio(audioElement);
-    } else if (button) {
+    }
+    else if (button) {
       log(LOG_LEVELS.INFO, 'Clicking button');
       button.click();
-    } else {
+    }
+    else if (storyDiv) {
+      log(LOG_LEVELS.INFO, 'Clicking button on story page.');
+      storyDiv.click();
+    }
+    else {
       log(LOG_LEVELS.DEBUG, 'No audio or button found');
     }
   }
@@ -325,8 +332,6 @@ function showNotification(message) {
     }, 300);
   }, 2000);
 }
-
-
 
 // for duolingo.com
 function setupDuolingoKeybindsAndBadges() {
