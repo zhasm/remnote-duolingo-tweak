@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Audio Control Highlighter and Replay [remnote]
 // @namespace    http://tampermonkey.net/
-// @version      1.001
+// @version      1.002
 // @description  Highlights audio controls and buttons, adds customizable
 // @author       Me
 // @match        https://www.remnote.com/*
@@ -358,7 +358,7 @@ function initRemnoteFlashcards() {
           }
         }
       });
-
+      DiffCheckerEntrence();
       if (highlightedCount > 0) {
         log(LOG_LEVELS.INFO,
             `[initRemnoteFlashcards] Highlighted ${
@@ -1123,6 +1123,181 @@ function setupDuolingoKeybindsAndBadges() {
 // Register for duolingo.com only
 setupDuolingoKeybindsAndBadges();
 
+function is100PercentCorrect(){
+  return document.querySelector('div.ai-grade-right-answer div.font-medium.remnote-highlight')?.textContent === '100%';
+}
+// Remnote Typein Answer Diff Highlight Begins
+function GetCloseText() {
+  const eles = document.querySelectorAll(
+    'span[data-linear-editor-item-type="m"].rn-fill-in-blank--revealed.cloze.linear-editor-item.whitespace-pre-wrap'
+  );
+  const result = Array.from(eles)
+    .map(i => i.textContent)
+    .join('');
+  return result;
+}
+
+const INPUT_TEXT_SELECTOR = 'div.p-3.ai-grade-right-answer div.font-medium span.data-hj-suppress.select-text span:not(.diff-check)'
+
+function GetInputText() {
+  const ret = document.querySelector(INPUT_TEXT_SELECTOR);
+  if (ret) {
+    return ret.textContent;
+  }
+}
+
+function highlightSmartDifferences(str1, str2) {
+  // Normalize strings: trim, lowercase, and remove punctuation
+  const normalize = (str) => {
+    return str.trim()
+      .toLowerCase()
+      .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '')
+      .replace(/\s{2,}/g, ' ');
+  };
+
+  const norm1 = normalize(str1);
+  const norm2 = normalize(str2);
+
+  // Create a container for the output
+  const container = document.createElement('div');
+  container.style.whiteSpace = 'pre-wrap';
+
+  // Find the longest common subsequence of words
+  const words1 = norm1.split(/\s+/);
+  const words2 = norm2.split(/\s+/);
+
+  // Find matching word sequences
+  const lcs = findLCS(words1, words2);
+  let lastPos1 = 0;
+  let lastPos2 = 0;
+
+  // Rebuild original strings with original formatting
+  const origWords1 = str1.trim().split(/\s+/);
+  const origWords2 = str2.trim().split(/\s+/);
+
+  for (const match of lcs) {
+    // Add differing portion from str1 (missing in str2)
+    if (match.index1 > lastPos1) {
+      const diffSpan = document.createElement('span');
+      diffSpan.textContent = origWords1.slice(lastPos1, match.index1).join(' ') + ' ';
+      diffSpan.style.backgroundColor = '#fff3b0'; // yellow for missing in input
+      container.appendChild(diffSpan);
+    }
+
+    // Add differing portion from str2 (extra in str2)
+    if (match.index2 > lastPos2) {
+      const diffSpan = document.createElement('span');
+      diffSpan.textContent = origWords2.slice(lastPos2, match.index2).join(' ') + ' ';
+      diffSpan.style.backgroundColor = '#ffb3b3'; // red for extra in input
+      container.appendChild(diffSpan);
+    }
+
+    // Add matching portion (from original str1 to preserve case)
+    container.appendChild(document.createTextNode(
+      origWords1.slice(match.index1, match.index1 + match.length).join(' ') + ' '
+    ));
+
+    lastPos1 = match.index1 + match.length;
+    lastPos2 = match.index2 + match.length;
+  }
+
+  // Add any remaining differing portions at the end
+  if (lastPos1 < origWords1.length) {
+    const diffSpan = document.createElement('span');
+    diffSpan.textContent = origWords1.slice(lastPos1).join(' ');
+    diffSpan.style.backgroundColor = '#fff3b0'; // yellow for missing in input
+    container.appendChild(diffSpan);
+  }
+
+  if (lastPos2 < origWords2.length) {
+    const diffSpan = document.createElement('span');
+    diffSpan.textContent = origWords2.slice(lastPos2).join(' ');
+    diffSpan.style.backgroundColor = '#ffb3b3'; // red for extra in input
+    container.appendChild(diffSpan);
+  }
+  return container;
+}
+
+// Helper function to find Longest Common Subsequence of words
+function findLCS(words1, words2) {
+  const matrix = [];
+  for (let i = 0; i <= words1.length; i++) {
+    matrix[i] = [0];
+  }
+  for (let j = 0; j <= words2.length; j++) {
+    matrix[0][j] = 0;
+  }
+
+  // Build the matrix
+  for (let i = 1; i <= words1.length; i++) {
+    for (let j = 1; j <= words2.length; j++) {
+      if (words1[i-1] === words2[j-1]) {
+        matrix[i][j] = matrix[i-1][j-1] + 1;
+      } else {
+        matrix[i][j] = Math.max(matrix[i-1][j], matrix[i][j-1]);
+      }
+    }
+  }
+
+  // Backtrack to find the LCS
+  const result = [];
+  let i = words1.length;
+  let j = words2.length;
+
+  while (i > 0 && j > 0) {
+    if (words1[i-1] === words2[j-1]) {
+      // Find the start of this matching sequence
+      let length = matrix[i][j];
+      let startI = i;
+      let startJ = j;
+
+      while (i > 0 && j > 0 && words1[i-1] === words2[j-1]) {
+        i--;
+        j--;
+      }
+
+      result.unshift({
+        value: words1.slice(i, startI).join(' '),
+        index1: i,
+        index2: j,
+        length: startI - i
+      });
+    } else if (matrix[i-1][j] > matrix[i][j-1]) {
+      i--;
+    } else {
+      j--;
+    }
+  }
+
+  return result;
+}
+
+function DiffCheckerEntrence(){
+  const inputResult = document.querySelector(INPUT_TEXT_SELECTOR);
+  if (!inputResult){
+    return;
+  }
+  if (is100PercentCorrect()){
+    console.log('It is already 100 correct.');
+    return;
+  }
+  let strOri = GetCloseText()?.trim();
+  let strInput = GetInputText()?.trim();
+  if (!strOri){
+    console.log("❌❌❌ no Original Str to cpm! ");
+    return;
+  }
+  if (!strInput){
+    console.log("❌❌❌ no Input Str to cpm! ");
+    return;
+  }
+  const diffNode = highlightSmartDifferences(strOri, strInput);
+
+  if (!inputResult.querySelector('.diff-check') && diffNode) {
+    diffNode.classList.add('diff-check');
+    inputResult.appendChild(diffNode);
+  }
+}
 // Start observing with initial delay
 setTimeout(setupTreeObserver, 2000);
 })();
