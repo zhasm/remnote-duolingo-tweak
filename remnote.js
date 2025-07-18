@@ -1146,8 +1146,28 @@ function GetInputText() {
   }
 }
 
-function highlightSmartDifferences(str1, str2) {
-  // Normalize strings: trim, lowercase, and remove punctuation
+let compareMode = GM_getValue('compareMode', 'word'); // 'word' or 'char'
+
+function toggleCompareMode() {
+  compareMode = compareMode === 'word' ? 'char' : 'word';
+  GM_setValue('compareMode', compareMode);
+  showNotification(`Comparison mode set to: ${compareMode === 'word' ? 'Word' : 'Character'}`);
+}
+
+function registerCompareModeMenu() {
+  GM_registerMenuCommand(
+    `Toggle Compare Mode (Word/Char) [current: ${compareMode}]`,
+    () => {
+      toggleCompareMode();
+      registerCompareModeMenu(); // Re-register to update label
+    }
+  );
+}
+
+registerCompareModeMenu();
+
+function highlightSmartDifferences(str1, str2, mode = 'word') {
+  // Normalize for comparison: trim, lowercase, and remove punctuation
   const normalize = (str) => {
     return str.trim()
       .toLowerCase()
@@ -1155,67 +1175,118 @@ function highlightSmartDifferences(str1, str2) {
       .replace(/\s{2,}/g, ' ');
   };
 
+  // For display, keep original
+  const displayStr1 = str1.trim();
+  const displayStr2 = str2.trim();
+
+  // For comparison, use normalized and lowercased
   const norm1 = normalize(str1);
   const norm2 = normalize(str2);
 
-  // Create a container for the output
   const container = document.createElement('div');
   container.style.whiteSpace = 'pre-wrap';
 
-  // Find the longest common subsequence of words
-  const words1 = norm1.split(/\s+/);
-  const words2 = norm2.split(/\s+/);
-
-  // Find matching word sequences
-  const lcs = findLCS(words1, words2);
-  let lastPos1 = 0;
-  let lastPos2 = 0;
-
-  // Rebuild original strings with original formatting
-  const origWords1 = str1.trim().split(/\s+/);
-  const origWords2 = str2.trim().split(/\s+/);
-
-  for (const match of lcs) {
-    // Add differing portion from str1 (missing in str2)
-    if (match.index1 > lastPos1) {
+  if (mode === 'word') {
+    // Split for comparison (lowercase)
+    const words1 = norm1.split(/\s+/);
+    const words2 = norm2.split(/\s+/);
+    const lcs = findLCS(words1, words2);
+    let lastPos1 = 0;
+    let lastPos2 = 0;
+    // For display, split original (preserve case)
+    const origWords1 = displayStr1.split(/\s+/);
+    const origWords2 = displayStr2.split(/\s+/);
+    for (const match of lcs) {
+      if (match.index1 > lastPos1) {
+        const diffSpan = document.createElement('span');
+        diffSpan.textContent = origWords1.slice(lastPos1, match.index1).join(' ') + ' ';
+        diffSpan.style.backgroundColor = '#fff3b0';
+        container.appendChild(diffSpan);
+      }
+      if (match.index2 > lastPos2) {
+        const diffSpan = document.createElement('span');
+        diffSpan.textContent = origWords2.slice(lastPos2, match.index2).join(' ') + ' ';
+        diffSpan.style.backgroundColor = '#ffb3b3';
+        container.appendChild(diffSpan);
+      }
+      container.appendChild(document.createTextNode(
+        origWords1.slice(match.index1, match.index1 + match.length).join(' ') + ' '
+      ));
+      lastPos1 = match.index1 + match.length;
+      lastPos2 = match.index2 + match.length;
+    }
+    if (lastPos1 < origWords1.length) {
       const diffSpan = document.createElement('span');
-      diffSpan.textContent = origWords1.slice(lastPos1, match.index1).join(' ') + ' ';
-      diffSpan.style.backgroundColor = '#fff3b0'; // yellow for missing in input
+      diffSpan.textContent = origWords1.slice(lastPos1).join(' ');
+      diffSpan.style.backgroundColor = '#fff3b0';
       container.appendChild(diffSpan);
     }
-
-    // Add differing portion from str2 (extra in str2)
-    if (match.index2 > lastPos2) {
+    if (lastPos2 < origWords2.length) {
       const diffSpan = document.createElement('span');
-      diffSpan.textContent = origWords2.slice(lastPos2, match.index2).join(' ') + ' ';
-      diffSpan.style.backgroundColor = '#ffb3b3'; // red for extra in input
+      diffSpan.textContent = origWords2.slice(lastPos2).join(' ');
+      diffSpan.style.backgroundColor = '#ffb3b3';
       container.appendChild(diffSpan);
     }
-
-    // Add matching portion (from original str1 to preserve case)
-    container.appendChild(document.createTextNode(
-      origWords1.slice(match.index1, match.index1 + match.length).join(' ') + ' '
-    ));
-
-    lastPos1 = match.index1 + match.length;
-    lastPos2 = match.index2 + match.length;
+    return container;
+  } else {
+    // Char mode: compare lowercased, display original
+    const chars1 = displayStr1.split('');
+    const chars2 = displayStr2.split('');
+    const normChars1 = displayStr1.toLowerCase().split('');
+    const normChars2 = displayStr2.toLowerCase().split('');
+    // Build LCS matrix on lowercased
+    const m = normChars1.length, n = normChars2.length;
+    const dp = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
+    for (let i = 1; i <= m; i++) {
+      for (let j = 1; j <= n; j++) {
+        if (normChars1[i - 1] === normChars2[j - 1]) {
+          dp[i][j] = dp[i - 1][j - 1] + 1;
+        } else {
+          dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+        }
+      }
+    }
+    // Backtrack to get diff
+    let i = m, j = n;
+    const ops = [];
+    while (i > 0 && j > 0) {
+      if (normChars1[i - 1] === normChars2[j - 1]) {
+        ops.unshift({type: 'equal', char: chars1[i - 1]});
+        i--; j--;
+      } else if (dp[i - 1][j] >= dp[i][j - 1]) {
+        ops.unshift({type: 'delete', char: chars1[i - 1]});
+        i--;
+      } else {
+        ops.unshift({type: 'insert', char: chars2[j - 1]});
+        j--;
+      }
+    }
+    while (i > 0) {
+      ops.unshift({type: 'delete', char: chars1[i - 1]});
+      i--;
+    }
+    while (j > 0) {
+      ops.unshift({type: 'insert', char: chars2[j - 1]});
+      j--;
+    }
+    // Render diff
+    ops.forEach(op => {
+      if (op.type === 'equal') {
+        container.appendChild(document.createTextNode(op.char));
+      } else if (op.type === 'delete') {
+        const span = document.createElement('span');
+        span.textContent = op.char;
+        span.style.backgroundColor = '#fff3b0';
+        container.appendChild(span);
+      } else if (op.type === 'insert') {
+        const span = document.createElement('span');
+        span.textContent = op.char;
+        span.style.backgroundColor = '#ffb3b3';
+        container.appendChild(span);
+      }
+    });
+    return container;
   }
-
-  // Add any remaining differing portions at the end
-  if (lastPos1 < origWords1.length) {
-    const diffSpan = document.createElement('span');
-    diffSpan.textContent = origWords1.slice(lastPos1).join(' ');
-    diffSpan.style.backgroundColor = '#fff3b0'; // yellow for missing in input
-    container.appendChild(diffSpan);
-  }
-
-  if (lastPos2 < origWords2.length) {
-    const diffSpan = document.createElement('span');
-    diffSpan.textContent = origWords2.slice(lastPos2).join(' ');
-    diffSpan.style.backgroundColor = '#ffb3b3'; // red for extra in input
-    container.appendChild(diffSpan);
-  }
-  return container;
 }
 
 // Helper function to find Longest Common Subsequence of words
@@ -1273,14 +1344,6 @@ function findLCS(words1, words2) {
 }
 
 function DiffCheckerEntrence(){
-  const inputResult = document.querySelector(INPUT_TEXT_SELECTOR);
-  if (!inputResult){
-    return;
-  }
-  if (is100PercentCorrect()){
-    console.log('It is already 100 correct.');
-    return;
-  }
   let strOri = GetCloseText()?.trim();
   let strInput = GetInputText()?.trim();
   if (!strOri){
@@ -1291,8 +1354,12 @@ function DiffCheckerEntrence(){
     console.log("❌❌❌ no Input Str to cpm! ");
     return;
   }
-  const diffNode = highlightSmartDifferences(strOri, strInput);
-
+  if (is100PercentCorrect()){
+    console.log('It is already 100 correct.');
+    return;
+  }
+  const inputResult = document.querySelector(INPUT_TEXT_SELECTOR);
+  const diffNode = highlightSmartDifferences(strOri, strInput, compareMode);
   if (!inputResult.querySelector('.diff-check') && diffNode) {
     diffNode.classList.add('diff-check');
     inputResult.appendChild(diffNode);
