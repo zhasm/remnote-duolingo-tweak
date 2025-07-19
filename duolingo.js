@@ -5,7 +5,7 @@
 // @description  Highlights audio controls and buttons, adds customizable
 // @author       Me
 // @match        https://www.duolingo.com/*
-// @icon         https://www.google.com/s2/favicons?sz=64&domain=workers.dev
+// @icon         https://d35aaqx5ub95lt.cloudfront.net/favicon.ico
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_addStyle

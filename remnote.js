@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Audio Control Highlighter and Replay [remnote]
 // @namespace    http://tampermonkey.net/
-// @version      1.002
+// @version      1.003
 // @description  Highlights audio controls and buttons, adds customizable
 // @author       Me
 // @match        https://www.remnote.com/*
@@ -1186,6 +1186,12 @@ function highlightSmartDifferences(str1, str2, mode = 'word') {
   const container = document.createElement('div');
   container.style.whiteSpace = 'pre-wrap';
 
+  // Check if strings are equal (case-insensitively)
+  if (norm1 === norm2) {
+    container.innerHTML = "<span style='color: green; font-weight: bold;'>✅ 👍 Génial !</span>";
+    return container;
+  }
+
   if (mode === 'word') {
     // Split for comparison (lowercase)
     const words1 = norm1.split(/\s+/);
@@ -1347,7 +1353,6 @@ function DiffCheckerEntrence(){
   let strOri = GetCloseText()?.trim();
   let strInput = GetInputText()?.trim();
   if (!strOri){
-    console.log("❌❌❌ no Original Str to cpm! ");
     return;
   }
   if (!strInput){
@@ -1359,6 +1364,10 @@ function DiffCheckerEntrence(){
     return;
   }
   const inputResult = document.querySelector(INPUT_TEXT_SELECTOR);
+  if (!inputResult) {
+    return;
+  }
+
   const diffNode = highlightSmartDifferences(strOri, strInput, compareMode);
   if (!inputResult.querySelector('.diff-check') && diffNode) {
     diffNode.classList.add('diff-check');
