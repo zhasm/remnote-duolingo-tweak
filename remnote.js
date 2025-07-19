@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Audio Control Highlighter and Replay [remnote]
 // @namespace    http://tampermonkey.net/
-// @version      1.003
+// @version      1.004-20250719-2035
 // @description  Highlights audio controls and buttons, adds customizable
 // @author       Me
 // @match        https://www.remnote.com/*
@@ -263,13 +263,13 @@ function initTextArea() {
 
 function setupTextareaListener(textarea) {
   textarea.addEventListener('keydown', (event) => {
-    log(LOG_LEVELS.INFO, '[✅initTextArea] Keydown event detected:', {
-      key: event.key,
-      ctrlKey: event.ctrlKey,
-      shiftKey: event.shiftKey,
-      altKey: event.altKey,
-      metaKey: event.metaKey
-    });
+    // log(LOG_LEVELS.INFO, '[✅initTextArea] Keydown event detected:', {
+    //   key: event.key,
+    //   ctrlKey: event.ctrlKey,
+    //   shiftKey: event.shiftKey,
+    //   altKey: event.altKey,
+    //   metaKey: event.metaKey
+    // });
 
     // Use the reusable hotkey match function
     if (isHotkeyMatch(event, hotkey)) {
@@ -381,7 +381,7 @@ function initRemnoteFlashcards() {
 
   // Register interval to check every 500 milliseconds
   try {
-    setInterval(checkAndHighlightRemnoteElements, 10);
+    setInterval(checkAndHighlightRemnoteElements, 1000);  // 100
     log(LOG_LEVELS.INFO,
         '[initRemnoteFlashcards] Remnote flashcards interval registered successfully');
   } catch (error) {
@@ -939,7 +939,7 @@ function setupTreeObserver() {
     // Initial theme application
     applyTheme(currentTheme);
   } else {
-    log(LOG_LEVELS.WARN, 'Container not found, retrying in 2 seconds');
+    //    log(LOG_LEVELS.WARN, 'Container not found, retrying in 2 seconds');
     setTimeout(setupTreeObserver, 2000);
   }
 }
@@ -1123,21 +1123,64 @@ function setupDuolingoKeybindsAndBadges() {
 // Register for duolingo.com only
 setupDuolingoKeybindsAndBadges();
 
-function is100PercentCorrect(){
-  return document.querySelector('div.ai-grade-right-answer div.font-medium.remnote-highlight')?.textContent === '100%';
+function is100PercentCorrect() {
+  return document
+             .querySelector(
+                 'div.ai-grade-right-answer div.font-medium.remnote-highlight')
+             ?.textContent === '100%';
 }
+
+function isNotQuiteRightActurallyRight() {
+  // console.log('✅❌ enter isNotQuiteRightActurallyRight comparison. ');
+  let input =
+      document
+          .querySelector(
+              'div.p-3.ai-grade-wrong-answer span.linear-editor-item span')
+          ?.textContent ||
+      '';
+  if (!input || input.length === 0) {
+    // console.log('✅❌ isNotQuiteRightActurallyRight 0 input return;');
+    return;
+  }
+  input = normalize(input);
+  const closeText = normalize(GetCloseText());
+  if (closeText === input) {
+    console.log('✅ actually the same');
+    return true;
+  }
+  console.log('❌ isNotQuiteRightActurallyRight 1');
+  let close_parent_text = GetCloseTextParentText();
+  if (input.includes(closeText) && close_parent_text.includes(input)) {
+    console.log('✅ input longer but still correct');
+    return true;
+  } else {
+    console.log('❌ isNotQuiteRightActurallyRight 2');
+  }
+  console.log('✅❌ isNotQuiteRightActurallyRight final return false;');
+  return false;
+}
+
+const INPUT_TEXT_SELECTOR =
+    'div.p-3.ai-grade-right-answer div.font-medium span.data-hj-suppress.select-text span:not(.diff-check)';
+
+const CLOSE_TEXT_SELECTOR =
+    'span[data-linear-editor-item-type="m"].rn-fill-in-blank--revealed.cloze.linear-editor-item.whitespace-pre-wrap';
+
+const CLOSE_TEXT_PARENT_SELECTOR =
+    'span.RichTextViewer.data-hj-suppress.select-text';
+
 // Remnote Typein Answer Diff Highlight Begins
 function GetCloseText() {
-  const eles = document.querySelectorAll(
-    'span[data-linear-editor-item-type="m"].rn-fill-in-blank--revealed.cloze.linear-editor-item.whitespace-pre-wrap'
-  );
-  const result = Array.from(eles)
-    .map(i => i.textContent)
-    .join('');
+  const eles = document.querySelectorAll(CLOSE_TEXT_SELECTOR);
+  const result = Array.from(eles).map(i => i.textContent).join('');
   return result;
 }
 
-const INPUT_TEXT_SELECTOR = 'div.p-3.ai-grade-right-answer div.font-medium span.data-hj-suppress.select-text span:not(.diff-check)'
+function GetCloseTextParentText() {
+  document.querySelector(CLOSE_TEXT_SELECTOR)
+      ?.closest(CLOSE_TEXT_PARENT_SELECTOR)
+      ?.textContent;
+}
 
 function GetInputText() {
   const ret = document.querySelector(INPUT_TEXT_SELECTOR);
@@ -1146,35 +1189,32 @@ function GetInputText() {
   }
 }
 
-let compareMode = GM_getValue('compareMode', 'word'); // 'word' or 'char'
+let compareMode = GM_getValue('compareMode', 'word');  // 'word' or 'char'
 
 function toggleCompareMode() {
   compareMode = compareMode === 'word' ? 'char' : 'word';
   GM_setValue('compareMode', compareMode);
-  showNotification(`Comparison mode set to: ${compareMode === 'word' ? 'Word' : 'Character'}`);
+  showNotification(`Comparison mode set to: ${
+      compareMode === 'word' ? 'Word' : 'Character'}`);
 }
 
 function registerCompareModeMenu() {
   GM_registerMenuCommand(
-    `Toggle Compare Mode (Word/Char) [current: ${compareMode}]`,
-    () => {
-      toggleCompareMode();
-      registerCompareModeMenu(); // Re-register to update label
-    }
-  );
+      `Toggle Compare Mode (Word/Char) [current: ${compareMode}]`, () => {
+        toggleCompareMode();
+        registerCompareModeMenu();  // Re-register to update label
+      });
 }
 
 registerCompareModeMenu();
-
-function highlightSmartDifferences(str1, str2, mode = 'word') {
-  // Normalize for comparison: trim, lowercase, and remove punctuation
-  const normalize = (str) => {
-    return str.trim()
+function normalize(str) {
+  return str.trim()
       .toLowerCase()
       .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '')
       .replace(/\s{2,}/g, ' ');
-  };
+};
 
+function highlightSmartDifferences(str1, str2, mode = 'word') {
   // For display, keep original
   const displayStr1 = str1.trim();
   const displayStr2 = str2.trim();
@@ -1187,8 +1227,9 @@ function highlightSmartDifferences(str1, str2, mode = 'word') {
   container.style.whiteSpace = 'pre-wrap';
 
   // Check if strings are equal (case-insensitively)
-  if (norm1 === norm2) {
-    container.innerHTML = "<span style='color: green; font-weight: bold;'>✅ 👍 Génial !</span>";
+  if (norm1 === norm2 || isNotQuiteRightActurallyRight()) {
+    container.innerHTML =
+        '<span style=\'color: green; font-weight: bold;\'>✅ 👍 Génial !</span>';
     return container;
   }
 
@@ -1205,19 +1246,22 @@ function highlightSmartDifferences(str1, str2, mode = 'word') {
     for (const match of lcs) {
       if (match.index1 > lastPos1) {
         const diffSpan = document.createElement('span');
-        diffSpan.textContent = origWords1.slice(lastPos1, match.index1).join(' ') + ' ';
+        diffSpan.textContent =
+            origWords1.slice(lastPos1, match.index1).join(' ') + ' ';
         diffSpan.style.backgroundColor = '#fff3b0';
         container.appendChild(diffSpan);
       }
       if (match.index2 > lastPos2) {
         const diffSpan = document.createElement('span');
-        diffSpan.textContent = origWords2.slice(lastPos2, match.index2).join(' ') + ' ';
+        diffSpan.textContent =
+            origWords2.slice(lastPos2, match.index2).join(' ') + ' ';
         diffSpan.style.backgroundColor = '#ffb3b3';
         container.appendChild(diffSpan);
       }
       container.appendChild(document.createTextNode(
-        origWords1.slice(match.index1, match.index1 + match.length).join(' ') + ' '
-      ));
+          origWords1.slice(match.index1, match.index1 + match.length)
+              .join(' ') +
+          ' '));
       lastPos1 = match.index1 + match.length;
       lastPos2 = match.index2 + match.length;
     }
@@ -1258,7 +1302,8 @@ function highlightSmartDifferences(str1, str2, mode = 'word') {
     while (i > 0 && j > 0) {
       if (normChars1[i - 1] === normChars2[j - 1]) {
         ops.unshift({type: 'equal', char: chars1[i - 1]});
-        i--; j--;
+        i--;
+        j--;
       } else if (dp[i - 1][j] >= dp[i][j - 1]) {
         ops.unshift({type: 'delete', char: chars1[i - 1]});
         i--;
@@ -1308,10 +1353,10 @@ function findLCS(words1, words2) {
   // Build the matrix
   for (let i = 1; i <= words1.length; i++) {
     for (let j = 1; j <= words2.length; j++) {
-      if (words1[i-1] === words2[j-1]) {
-        matrix[i][j] = matrix[i-1][j-1] + 1;
+      if (words1[i - 1] === words2[j - 1]) {
+        matrix[i][j] = matrix[i - 1][j - 1] + 1;
       } else {
-        matrix[i][j] = Math.max(matrix[i-1][j], matrix[i][j-1]);
+        matrix[i][j] = Math.max(matrix[i - 1][j], matrix[i][j - 1]);
       }
     }
   }
@@ -1322,13 +1367,13 @@ function findLCS(words1, words2) {
   let j = words2.length;
 
   while (i > 0 && j > 0) {
-    if (words1[i-1] === words2[j-1]) {
+    if (words1[i - 1] === words2[j - 1]) {
       // Find the start of this matching sequence
       let length = matrix[i][j];
       let startI = i;
       let startJ = j;
 
-      while (i > 0 && j > 0 && words1[i-1] === words2[j-1]) {
+      while (i > 0 && j > 0 && words1[i - 1] === words2[j - 1]) {
         i--;
         j--;
       }
@@ -1339,7 +1384,7 @@ function findLCS(words1, words2) {
         index2: j,
         length: startI - i
       });
-    } else if (matrix[i-1][j] > matrix[i][j-1]) {
+    } else if (matrix[i - 1][j] > matrix[i][j - 1]) {
       i--;
     } else {
       j--;
@@ -1349,17 +1394,16 @@ function findLCS(words1, words2) {
   return result;
 }
 
-function DiffCheckerEntrence(){
+function DiffCheckerEntrence() {
   let strOri = GetCloseText()?.trim();
   let strInput = GetInputText()?.trim();
-  if (!strOri){
+  if (!strOri) {
     return;
   }
-  if (!strInput){
-    console.log("❌❌❌ no Input Str to cpm! ");
+  if (!strInput) {
     return;
   }
-  if (is100PercentCorrect()){
+  if (is100PercentCorrect()) {
     console.log('It is already 100 correct.');
     return;
   }
