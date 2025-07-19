@@ -1,11 +1,11 @@
 // ==UserScript==
 // @name         Audio Control Highlighter and Replay [remnote]
 // @namespace    http://tampermonkey.net/
-// @version      1.003
+// @version      1.004-20250720-2015
 // @description  Highlights audio controls and buttons, adds customizable
 // @author       Me
 // @match        https://www.remnote.com/*
-// @icon         https://www.google.com/s2/favicons?sz=64&domain=workers.dev
+// @icon         https://www.google.com/s2/favicons?sz=64&domain=remnote.com
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_addStyle
@@ -70,39 +70,39 @@ let hotkey = getHotkeyForDomain();
 // Add custom CSS
 GM_addStyle(`
 
-      .AudioVideoNode {
-          margin-right: 4px;
-      }
+          .AudioVideoNode {
+              margin-right: 4px;
+          }
 
-      .AudioVideoNode audio {
-          border: 1px solid green !important; /*#ff003c*/
-          border-radius: 8px !important;¬
-          padding: 4px !important;
-          background-color: #f0f8ff !important;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
-          transition: all 0.3s ease !important;
-          width: 300px !important;
-          max-width: 100% !important;
-          display: block !important;
-      }
-      .AudioVideoNode audio:hover {
-          box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
-      }
-      span[dir="ltr"] button {
-          border: 2px solid #ff003c !important;
-          border-radius: 4px !important;
-          background-color: #e6f3ff !important;
-          color: #4a90e2 !important;
-          font-weight: bold !important;
-          padding: 6px 12px !important;
-          transition: all 0.3s ease !important;
-          cursor: pointer !important;
-      }
-      span[dir="ltr"] button:hover {
-          background-color: #4a90e2 !important;
-          color: white !important;
-      }
-  `);
+          .AudioVideoNode audio {
+              border: 1px solid green !important; /*#ff003c*/
+              border-radius: 8px !important;¬
+              padding: 4px !important;
+              background-color: #f0f8ff !important;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+              transition: all 0.3s ease !important;
+              width: 300px !important;
+              max-width: 100% !important;
+              display: block !important;
+          }
+          .AudioVideoNode audio:hover {
+              box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
+          }
+          span[dir="ltr"] button {
+              border: 2px solid #ff003c !important;
+              border-radius: 4px !important;
+              background-color: #e6f3ff !important;
+              color: #4a90e2 !important;
+              font-weight: bold !important;
+              padding: 6px 12px !important;
+              transition: all 0.3s ease !important;
+              cursor: pointer !important;
+          }
+          span[dir="ltr"] button:hover {
+              background-color: #4a90e2 !important;
+              color: white !important;
+          }
+      `);
 
 function highlightAudioControl(audioElement) {
   log(LOG_LEVELS.DEBUG, 'Attempting to highlight audio control');
@@ -315,13 +315,13 @@ function initRemnoteFlashcards() {
       const style = document.createElement('style');
       style.id = 'remnote-highlight-style';
       style.textContent = `
-        .remnote-highlight {
-          background-color: yellow !important;
-          color: green !important;
-          font-weight: bold !important;
-          font-size: 18px !important;
-        }
-      `;
+            .remnote-highlight {
+              background-color: yellow !important;
+              color: green !important;
+              font-weight: bold !important;
+              font-size: 18px !important;
+            }
+          `;
       document.head.appendChild(style);
       log(LOG_LEVELS.INFO,
           '[initRemnoteFlashcards] Remnote highlight CSS added successfully');
@@ -379,9 +379,8 @@ function initRemnoteFlashcards() {
         '[initRemnoteFlashcards] Failed during initial Remnote check:', error);
   }
 
-  // Register interval to check every 500 milliseconds
   try {
-    setInterval(checkAndHighlightRemnoteElements, 10);
+    setInterval(checkAndHighlightRemnoteElements, 50);  // 100
     log(LOG_LEVELS.INFO,
         '[initRemnoteFlashcards] Remnote flashcards interval registered successfully');
   } catch (error) {
@@ -401,60 +400,60 @@ function promptForHotkey() {
   const domain = getDomainKey();
   const dialog = document.createElement('div');
   dialog.style.cssText = `
-          position: fixed;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          background: var(--background-color, #2d2d2d);
-          color: var(--text-color, #e0e0e0);
-          padding: 20px;
-          border-radius: 8px;
-          box-shadow: 0 2px 10px rgba(0,0,0,0.4);
-          z-index: 10000;
-          min-width: 300px;
-      `;
+              position: fixed;
+              top: 50%;
+              left: 50%;
+              transform: translate(-50%, -50%);
+              background: var(--background-color, #2d2d2d);
+              color: var(--text-color, #e0e0e0);
+              padding: 20px;
+              border-radius: 8px;
+              box-shadow: 0 2px 10px rgba(0,0,0,0.4);
+              z-index: 10000;
+              min-width: 300px;
+          `;
 
   const content = `
-          <h3 style="margin-top: 0; color: var(--text-color, #e0e0e0);">Script Configuration for ${
+              <h3 style="margin-top: 0; color: var(--text-color, #e0e0e0);">Script Configuration for ${
       domain}</h3>
-          <div style="margin-bottom: 15px;">
-              <h4 style="margin: 10px 0; color: var(--text-color, #e0e0e0);">Hotkey Settings</h4>
-              <label style="color: var(--text-color, #e0e0e0);">Key: <input type="text" id="hotkeyChar" maxlength="1"
-              value="${hotkey.key}"
-              style="width: 30px; background: var(--input-background, #3d3d3d); color: var(--text-color, #e0e0e0); border: 1px solid var(--border-color, #555);"></label>
-          </div>
-          <div style="margin-bottom: 15px;">
-              <label style="color: var(--text-color, #e0e0e0);"><input type="checkbox" id="hotkeyCtrl" ${
+              <div style="margin-bottom: 15px;">
+                  <h4 style="margin: 10px 0; color: var(--text-color, #e0e0e0);">Hotkey Settings</h4>
+                  <label style="color: var(--text-color, #e0e0e0);">Key: <input type="text" id="hotkeyChar" maxlength="1"
+                  value="${hotkey.key}"
+                  style="width: 30px; background: var(--input-background, #3d3d3d); color: var(--text-color, #e0e0e0); border: 1px solid var(--border-color, #555);"></label>
+              </div>
+              <div style="margin-bottom: 15px;">
+                  <label style="color: var(--text-color, #e0e0e0);"><input type="checkbox" id="hotkeyCtrl" ${
       hotkey.ctrlKey ? 'checked' : ''}> ⌃(Ctrl)</label>
-              <label style="margin-left: 10px; color: var(--text-color, #e0e0e0);"><input type="checkbox" id="hotkeyShift" ${
+                  <label style="margin-left: 10px; color: var(--text-color, #e0e0e0);"><input type="checkbox" id="hotkeyShift" ${
       hotkey.shiftKey ? 'checked' : ''}> ⇧(Shift)</label>
-              <label style="margin-left: 10px; color: var(--text-color, #e0e0e0);"><input type="checkbox" id="hotkeyAlt" ${
+                  <label style="margin-left: 10px; color: var(--text-color, #e0e0e0);"><input type="checkbox" id="hotkeyAlt" ${
       hotkey.altKey ? 'checked' : ''}> ⌥(Alt)</label>
-              <label style="margin-left: 10px; color: var(--text-color, #e0e0e0);"><input type="checkbox" id="hotkeyMeta" ${
+                  <label style="margin-left: 10px; color: var(--text-color, #e0e0e0);"><input type="checkbox" id="hotkeyMeta" ${
       hotkey.metaKey ? 'checked' : ''}> ⌘(Cmd)</label>
-          </div>
-          <div style="margin-bottom: 15px;">
-              <h4 style="margin: 10px 0; color: var(--text-color, #e0e0e0);">Log Level</h4>
-              <select id="logLevel" style="background: var(--input-background, #3d3d3d); color: var(--text-color, #e0e0e0); border: 1px solid var(--border-color, #555); padding: 5px;">
-                  <option value="${LOG_LEVELS.ERROR}" ${
+              </div>
+              <div style="margin-bottom: 15px;">
+                  <h4 style="margin: 10px 0; color: var(--text-color, #e0e0e0);">Log Level</h4>
+                  <select id="logLevel" style="background: var(--input-background, #3d3d3d); color: var(--text-color, #e0e0e0); border: 1px solid var(--border-color, #555); padding: 5px;">
+                      <option value="${LOG_LEVELS.ERROR}" ${
       currentLogLevel === LOG_LEVELS.ERROR ? 'selected' :
                                              ''}>Error Only</option>
-                  <option value="${LOG_LEVELS.WARN}" ${
+                      <option value="${LOG_LEVELS.WARN}" ${
       currentLogLevel === LOG_LEVELS.WARN ? 'selected' :
                                             ''}>Warning & Error</option>
-                  <option value="${LOG_LEVELS.INFO}" ${
+                      <option value="${LOG_LEVELS.INFO}" ${
       currentLogLevel === LOG_LEVELS.INFO ? 'selected' :
                                             ''}>Info & Above</option>
-                  <option value="${LOG_LEVELS.DEBUG}" ${
+                      <option value="${LOG_LEVELS.DEBUG}" ${
       currentLogLevel === LOG_LEVELS.DEBUG ? 'selected' :
                                              ''}>Debug (All)</option>
-              </select>
-          </div>
-          <div style="text-align: right;">
-              <button id="configSave" style="margin-right: 10px; background: var(--button-background, #4a4a4a); color: var(--button-text, #e0e0e0); border: 1px solid var(--border-color, #555); padding: 5px 10px; border-radius: 4px; cursor: pointer;">Save</button>
-              <button id="configCancel" style="background: var(--button-background, #4a4a4a); color: var(--button-text, #e0e0e0); border: 1px solid var(--border-color, #555); padding: 5px 10px; border-radius: 4px; cursor: pointer;">Cancel</button>
-          </div>
-      `;
+                  </select>
+              </div>
+              <div style="text-align: right;">
+                  <button id="configSave" style="margin-right: 10px; background: var(--button-background, #4a4a4a); color: var(--button-text, #e0e0e0); border: 1px solid var(--border-color, #555); padding: 5px 10px; border-radius: 4px; cursor: pointer;">Save</button>
+                  <button id="configCancel" style="background: var(--button-background, #4a4a4a); color: var(--button-text, #e0e0e0); border: 1px solid var(--border-color, #555); padding: 5px 10px; border-radius: 4px; cursor: pointer;">Cancel</button>
+              </div>
+          `;
 
   dialog.innerHTML = content;
   document.body.appendChild(dialog);
@@ -596,17 +595,17 @@ function showNotification(message) {
   const notification = document.createElement('div');
   notification.textContent = message;
   notification.style.cssText = `
-          position: fixed;
-          top: 20px;
-          right: 20px;
-          background-color: rgba(0, 0, 0, 0.7);
-          color: white;
-          padding: 10px 20px;
-          border-radius: 5px;
-          z-index: 9999;
-          opacity: 0;
-          transition: opacity 0.3s ease-in-out;
-      `;
+              position: fixed;
+              top: 20px;
+              right: 20px;
+              background-color: rgba(0, 0, 0, 0.7);
+              color: white;
+              padding: 10px 20px;
+              border-radius: 5px;
+              z-index: 9999;
+              opacity: 0;
+              transition: opacity 0.3s ease-in-out;
+          `;
   document.body.appendChild(notification);
 
   // Fade in
@@ -625,9 +624,9 @@ function showNotification(message) {
 
 // Add this function after waitForAudioElement function
 function addLineBreakAfterFirstSpan() {
-  log(LOG_LEVELS.DEBUG,
-      'Checking for spans with buttons that need line breaks');
-
+  // log(LOG_LEVELS.DEBUG,
+  //     'Checking for spans with buttons that need line breaks');
+  //
   // Skip if any audio is currently playing
   const activeAudio = document.querySelector('audio:not([paused])');
   if (activeAudio && !activeAudio.paused) {
@@ -781,43 +780,43 @@ function showThemeSelector() {
   const dialog = document.createElement('div');
   dialog.id = 'theme-selector-dialog';
   dialog.style.cssText = `
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: var(--background-color, #2d2d2d);
-      color: var(--text-color, #e0e0e0);
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.4);
-      z-index: 10000;
-      min-width: 200px;
-  `;
+          position: fixed;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          background: var(--background-color, #2d2d2d);
+          color: var(--text-color, #e0e0e0);
+          padding: 20px;
+          border-radius: 8px;
+          box-shadow: 0 2px 10px rgba(0,0,0,0.4);
+          z-index: 10000;
+          min-width: 200px;
+      `;
 
   // Replace the select element HTML with radio buttons
   const radioOptions = Object.entries(ALL_COLOR_THEMES)
                            .map(([key, theme]) => `
-    <div style="margin: 8px 0;">
-      <label style="display: flex; align-items: center; cursor: pointer; color: var(--text-color, #e0e0e0);">
-        <input type="radio"
-               name="themeRadio"
-               value="${key}"
-               ${key === currentTheme ? 'checked' : ''}
-               style="margin-right: 10px;">
-        <span>${theme.name}</span>
-      </label>
-    </div>
-  `).join('');
+        <div style="margin: 8px 0;">
+          <label style="display: flex; align-items: center; cursor: pointer; color: var(--text-color, #e0e0e0);">
+            <input type="radio"
+                  name="themeRadio"
+                  value="${key}"
+                  ${key === currentTheme ? 'checked' : ''}
+                  style="margin-right: 10px;">
+            <span>${theme.name}</span>
+          </label>
+        </div>
+      `).join('');
 
   dialog.innerHTML = `
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-          <h4 style="margin: 0; color: var(--text-color, #e0e0e0);">选择主题</h4>
-          <button id="closeThemeDialog" style="border: none; background: none; color: var(--text-color, #e0e0e0); cursor: pointer; padding: 5px;">✕</button>
-      </div>
-      <div style="margin: 10px 0;">
-          ${radioOptions}
-      </div>
-  `;
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+              <h4 style="margin: 0; color: var(--text-color, #e0e0e0);">选择主题</h4>
+              <button id="closeThemeDialog" style="border: none; background: none; color: var(--text-color, #e0e0e0); cursor: pointer; padding: 5px;">✕</button>
+          </div>
+          <div style="margin: 10px 0;">
+              ${radioOptions}
+          </div>
+      `;
 
   document.body.appendChild(dialog);
 
@@ -876,31 +875,31 @@ function applyTheme(themeName) {
   styleElement.id = 'tree-theme-styles';
 
   const css = `
-    .border-gray-20 {
-      border-color: ${theme.colors[0]} !important;
-    }
-    .TreeNode .border-gray-20 {
-      border-color: ${theme.colors[1]} !important;
-    }
-    .TreeNode .TreeNode .border-gray-20 {
-      border-color: ${theme.colors[2]} !important;
-    }
-    .TreeNode .TreeNode .TreeNode .border-gray-20 {
-      border-color: ${theme.colors[3]} !important;
-    }
-    .TreeNode .TreeNode .TreeNode .TreeNode .border-gray-20 {
-      border-color: ${theme.colors[4]} !important;
-    }
-    .TreeNode .TreeNode .TreeNode .TreeNode .TreeNode .border-gray-20 {
-      border-color: ${theme.colors[5]} !important;
-    }
-    .TreeNode .TreeNode .TreeNode .TreeNode .TreeNode .TreeNode .border-gray-20 {
-      border-color: ${theme.colors[6]} !important;
-    }
-    .TreeNode .TreeNode .TreeNode .TreeNode .TreeNode .TreeNode .TreeNode .border-gray-20 {
-      border-color: ${theme.colors[7]} !important;
-    }
-  `;
+        .border-gray-20 {
+          border-color: ${theme.colors[0]} !important;
+        }
+        .TreeNode .border-gray-20 {
+          border-color: ${theme.colors[1]} !important;
+        }
+        .TreeNode .TreeNode .border-gray-20 {
+          border-color: ${theme.colors[2]} !important;
+        }
+        .TreeNode .TreeNode .TreeNode .border-gray-20 {
+          border-color: ${theme.colors[3]} !important;
+        }
+        .TreeNode .TreeNode .TreeNode .TreeNode .border-gray-20 {
+          border-color: ${theme.colors[4]} !important;
+        }
+        .TreeNode .TreeNode .TreeNode .TreeNode .TreeNode .border-gray-20 {
+          border-color: ${theme.colors[5]} !important;
+        }
+        .TreeNode .TreeNode .TreeNode .TreeNode .TreeNode .TreeNode .border-gray-20 {
+          border-color: ${theme.colors[6]} !important;
+        }
+        .TreeNode .TreeNode .TreeNode .TreeNode .TreeNode .TreeNode .TreeNode .border-gray-20 {
+          border-color: ${theme.colors[7]} !important;
+        }
+      `;
 
   styleElement.textContent = css;
   document.head.appendChild(styleElement);
@@ -939,7 +938,7 @@ function setupTreeObserver() {
     // Initial theme application
     applyTheme(currentTheme);
   } else {
-    log(LOG_LEVELS.WARN, 'Container not found, retrying in 2 seconds');
+    //    log(LOG_LEVELS.WARN, 'Container not found, retrying in 2 seconds');
     setTimeout(setupTreeObserver, 2000);
   }
 }
@@ -1006,21 +1005,21 @@ function setupDuolingoKeybindsAndBadges() {
       badge.className = `kb-badge kb-badge-${buttonType}`;
       badge.textContent = label;
       badge.style.cssText = `
-          position: absolute;
-          top: -5px;
-          left: -5px;
-          background: ${buttonType === 'original' ? '#555' : '#7d3c98'};
-          color: white;
-          border-radius: 50%;
-          width: 18px;
-          height: 18px;
-          font-size: 11px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          pointer-events: none;
-          font-family: monospace;
-        `;
+              position: absolute;
+              top: -5px;
+              left: -5px;
+              background: ${buttonType === 'original' ? '#555' : '#7d3c98'};
+              color: white;
+              border-radius: 50%;
+              width: 18px;
+              height: 18px;
+              font-size: 11px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              pointer-events: none;
+              font-family: monospace;
+            `;
       button.style.position = 'relative';
       button.appendChild(badge);
       // Map key to current button reference
@@ -1061,27 +1060,27 @@ function setupDuolingoKeybindsAndBadges() {
       btn.title = 'Refresh Keybinds (Debug)';
       btn.innerHTML = '🔁';
       btn.style.cssText = `
-        position: fixed;
-        bottom: 10px;
-        right: 10px;
-        z-index: 9999;
-        width: 24px;
-        height: 24px;
-        padding: 0;
-        border-radius: 50%;
-        background: #2196F3;
-        color: white;
-        border: none;
-        cursor: pointer;
-        font-size: 14px;
-        line-height: 24px;
-        text-align: center;
-        overflow: hidden;
-        white-space: nowrap;
-        transition: all 0.3s ease;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        opacity: 0.7;
-      `;
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            z-index: 9999;
+            width: 24px;
+            height: 24px;
+            padding: 0;
+            border-radius: 50%;
+            background: #2196F3;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            line-height: 24px;
+            text-align: center;
+            overflow: hidden;
+            white-space: nowrap;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            opacity: 0.7;
+          `;
       btn.addEventListener('mouseenter', () => {
         btn.style.width = '120px';
         btn.style.borderRadius = '4px';
@@ -1123,21 +1122,65 @@ function setupDuolingoKeybindsAndBadges() {
 // Register for duolingo.com only
 setupDuolingoKeybindsAndBadges();
 
-function is100PercentCorrect(){
-  return document.querySelector('div.ai-grade-right-answer div.font-medium.remnote-highlight')?.textContent === '100%';
+function is100PercentCorrect() {
+  return document
+             .querySelector(
+                 'div.ai-grade-right-answer div.font-medium.remnote-highlight')
+             ?.textContent === '100%';
 }
+function isNotQuiteRight() {
+  return document
+             .querySelector(
+                 'div.type-answer--result div.justify-between div.text-red-70')
+             ?.textContent === 'Not Quite';
+}
+
+function isNotQuiteRightActurallyRight() {
+  let input =
+      document
+          .querySelector(
+              'div.p-3.ai-grade-wrong-answer span.linear-editor-item span')
+          ?.textContent ||
+      '';
+
+  if (!input || input.length === 0) {
+    return;
+  }
+  input = normalize(input);
+  const closeText = normalize(GetCloseText());
+  if (closeText === input) {
+    return true;
+  }
+  let close_parent_text = normalize(GetCloseTextParentText());
+
+  if (input.includes(closeText) && close_parent_text.includes(input)) {
+    console.log('✅✅✅ input longer but still correct');
+    return true;
+  }
+  return false;
+}
+
+const INPUT_TEXT_SELECTOR =
+    'div.p-3.ai-grade-right-answer div.font-medium span.data-hj-suppress.select-text span:not(.diff-check), div.ai-grade-wrong-answer span.data-hj-suppress span[data-linear-editor-item-type="m"] span:not(.diff-check)';
+
+const CLOSE_TEXT_SELECTOR =
+    'span[data-linear-editor-item-type="m"].rn-fill-in-blank--revealed.cloze.linear-editor-item.whitespace-pre-wrap';
+
+const CLOSE_TEXT_PARENT_SELECTOR =
+    'span.RichTextViewer.data-hj-suppress.select-text';
+
 // Remnote Typein Answer Diff Highlight Begins
 function GetCloseText() {
-  const eles = document.querySelectorAll(
-    'span[data-linear-editor-item-type="m"].rn-fill-in-blank--revealed.cloze.linear-editor-item.whitespace-pre-wrap'
-  );
-  const result = Array.from(eles)
-    .map(i => i.textContent)
-    .join('');
+  const eles = document.querySelectorAll(CLOSE_TEXT_SELECTOR);
+  const result = Array.from(eles).map(i => i.textContent).join('');
   return result;
 }
 
-const INPUT_TEXT_SELECTOR = 'div.p-3.ai-grade-right-answer div.font-medium span.data-hj-suppress.select-text span:not(.diff-check)'
+function GetCloseTextParentText() {
+  return document.querySelector(CLOSE_TEXT_SELECTOR)
+      ?.closest(CLOSE_TEXT_PARENT_SELECTOR)
+      ?.textContent;
+}
 
 function GetInputText() {
   const ret = document.querySelector(INPUT_TEXT_SELECTOR);
@@ -1146,35 +1189,40 @@ function GetInputText() {
   }
 }
 
-let compareMode = GM_getValue('compareMode', 'word'); // 'word' or 'char'
+let compareMode = GM_getValue('compareMode', 'word');  // 'word' or 'char'
 
 function toggleCompareMode() {
   compareMode = compareMode === 'word' ? 'char' : 'word';
   GM_setValue('compareMode', compareMode);
-  showNotification(`Comparison mode set to: ${compareMode === 'word' ? 'Word' : 'Character'}`);
+  showNotification(`Comparison mode set to: ${
+      compareMode === 'word' ? 'Word' : 'Character'}`);
 }
 
 function registerCompareModeMenu() {
   GM_registerMenuCommand(
-    `Toggle Compare Mode (Word/Char) [current: ${compareMode}]`,
-    () => {
-      toggleCompareMode();
-      registerCompareModeMenu(); // Re-register to update label
-    }
-  );
+      `Toggle Compare Mode (Word/Char) [current: ${compareMode}]`, () => {
+        toggleCompareMode();
+        registerCompareModeMenu();  // Re-register to update label
+      });
 }
 
 registerCompareModeMenu();
-
-function highlightSmartDifferences(str1, str2, mode = 'word') {
-  // Normalize for comparison: trim, lowercase, and remove punctuation
-  const normalize = (str) => {
-    return str.trim()
+function normalize(str) {
+  return str.trim()
       .toLowerCase()
       .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '')
       .replace(/\s{2,}/g, ' ');
-  };
+};
 
+function LooksGood() {
+  const container = document.createElement('div');
+  container.style.whiteSpace = 'pre-wrap';
+  container.innerHTML =
+      '<span style=\'color: green; font-weight: bold;\'>✅ 👍 Génial !</span>';
+  return container;
+}
+
+function highlightSmartDifferences(str1, str2, mode = 'word') {
   // For display, keep original
   const displayStr1 = str1.trim();
   const displayStr2 = str2.trim();
@@ -1188,8 +1236,7 @@ function highlightSmartDifferences(str1, str2, mode = 'word') {
 
   // Check if strings are equal (case-insensitively)
   if (norm1 === norm2) {
-    container.innerHTML = "<span style='color: green; font-weight: bold;'>✅ 👍 Génial !</span>";
-    return container;
+    return LooksGood();
   }
 
   if (mode === 'word') {
@@ -1205,19 +1252,22 @@ function highlightSmartDifferences(str1, str2, mode = 'word') {
     for (const match of lcs) {
       if (match.index1 > lastPos1) {
         const diffSpan = document.createElement('span');
-        diffSpan.textContent = origWords1.slice(lastPos1, match.index1).join(' ') + ' ';
+        diffSpan.textContent =
+            origWords1.slice(lastPos1, match.index1).join(' ') + ' ';
         diffSpan.style.backgroundColor = '#fff3b0';
         container.appendChild(diffSpan);
       }
       if (match.index2 > lastPos2) {
         const diffSpan = document.createElement('span');
-        diffSpan.textContent = origWords2.slice(lastPos2, match.index2).join(' ') + ' ';
+        diffSpan.textContent =
+            origWords2.slice(lastPos2, match.index2).join(' ') + ' ';
         diffSpan.style.backgroundColor = '#ffb3b3';
         container.appendChild(diffSpan);
       }
       container.appendChild(document.createTextNode(
-        origWords1.slice(match.index1, match.index1 + match.length).join(' ') + ' '
-      ));
+          origWords1.slice(match.index1, match.index1 + match.length)
+              .join(' ') +
+          ' '));
       lastPos1 = match.index1 + match.length;
       lastPos2 = match.index2 + match.length;
     }
@@ -1258,7 +1308,8 @@ function highlightSmartDifferences(str1, str2, mode = 'word') {
     while (i > 0 && j > 0) {
       if (normChars1[i - 1] === normChars2[j - 1]) {
         ops.unshift({type: 'equal', char: chars1[i - 1]});
-        i--; j--;
+        i--;
+        j--;
       } else if (dp[i - 1][j] >= dp[i][j - 1]) {
         ops.unshift({type: 'delete', char: chars1[i - 1]});
         i--;
@@ -1308,10 +1359,10 @@ function findLCS(words1, words2) {
   // Build the matrix
   for (let i = 1; i <= words1.length; i++) {
     for (let j = 1; j <= words2.length; j++) {
-      if (words1[i-1] === words2[j-1]) {
-        matrix[i][j] = matrix[i-1][j-1] + 1;
+      if (words1[i - 1] === words2[j - 1]) {
+        matrix[i][j] = matrix[i - 1][j - 1] + 1;
       } else {
-        matrix[i][j] = Math.max(matrix[i-1][j], matrix[i][j-1]);
+        matrix[i][j] = Math.max(matrix[i - 1][j], matrix[i][j - 1]);
       }
     }
   }
@@ -1322,13 +1373,13 @@ function findLCS(words1, words2) {
   let j = words2.length;
 
   while (i > 0 && j > 0) {
-    if (words1[i-1] === words2[j-1]) {
+    if (words1[i - 1] === words2[j - 1]) {
       // Find the start of this matching sequence
       let length = matrix[i][j];
       let startI = i;
       let startJ = j;
 
-      while (i > 0 && j > 0 && words1[i-1] === words2[j-1]) {
+      while (i > 0 && j > 0 && words1[i - 1] === words2[j - 1]) {
         i--;
         j--;
       }
@@ -1339,7 +1390,7 @@ function findLCS(words1, words2) {
         index2: j,
         length: startI - i
       });
-    } else if (matrix[i-1][j] > matrix[i][j-1]) {
+    } else if (matrix[i - 1][j] > matrix[i][j - 1]) {
       i--;
     } else {
       j--;
@@ -1349,25 +1400,47 @@ function findLCS(words1, words2) {
   return result;
 }
 
-function DiffCheckerEntrence(){
+function DiffCheckerEntrence() {
   let strOri = GetCloseText()?.trim();
   let strInput = GetInputText()?.trim();
-  if (!strOri){
-    return;
-  }
-  if (!strInput){
-    console.log("❌❌❌ no Input Str to cpm! ");
-    return;
-  }
-  if (is100PercentCorrect()){
-    console.log('It is already 100 correct.');
-    return;
-  }
   const inputResult = document.querySelector(INPUT_TEXT_SELECTOR);
-  if (!inputResult) {
+
+  if (isNotQuiteRight()) {
+    if (isNotQuiteRightActurallyRight()) {
+      const node = LooksGood();
+      node.classList.add('diff-check');
+      inputResult.appendChild(node);
+
+      const div = document.querySelector('div.ai-grade-wrong-answer');
+
+      if (div) {
+        div.classList.remove('ai-grade-wrong-answer');
+        div.classList.add('ai-grade-right-answer');
+      }
+      const div2 = document.querySelector(
+          'div.ai-grade-wrong-answer-container-background');
+
+      if (div2) {
+        div2.remove();
+      }
+      return;
+    }
+  }
+
+  if (is100PercentCorrect()) {
     return;
   }
 
+  if (!strOri) {
+    return;
+  }
+  if (!strInput) {
+    return;
+  }
+
+  if (!inputResult) {
+    return;
+  }
   const diffNode = highlightSmartDifferences(strOri, strInput, compareMode);
   if (!inputResult.querySelector('.diff-check') && diffNode) {
     diffNode.classList.add('diff-check');
