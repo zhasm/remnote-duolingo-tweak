@@ -377,11 +377,8 @@
       log(LOG_LEVELS.INFO,
         '[initRemnoteFlashcards] Failed during initial Remnote check:', error);
     }
-    // fixme FIXME
+
     // Register interval to check every 500 milliseconds
-    /* todo */
-    /* TODO */
-    // TODO remove interval after 10 retries, or not? todo
     try {
       setInterval(checkAndHighlightRemnoteElements, 100);  // 100
       log(LOG_LEVELS.INFO,
@@ -1120,7 +1117,7 @@
         'div.ai-grade-right-answer div.font-medium.remnote-highlight')
       ?.textContent === '100%';
   }
-  function isNotQuiteRight(){
+  function isNotQuiteRight() {
     return document.querySelector('div.type-answer--result div.justify-between div.text-red-70')?.textContent === "Not Quite";
   }
   function isNotQuiteRightActurallyRight() {
@@ -1400,7 +1397,7 @@
       log(LOG_LEVELS.DEBUG, 'It is already 100 correct.');
       return;
     }
-    if (isNotQuiteRight()){
+    if (isNotQuiteRight()) {
       log(LOG_LEVELS.ERROR, "❌❌❌ isNotQuiteRight");
     }
     const inputResult = document.querySelector(INPUT_TEXT_SELECTOR);
