@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Audio Control Highlighter and Replay [collinsdictionary]
 // @namespace    http://tampermonkey.net/
-// @version      1.002
+// @version      1.003-20250724-1128
 // @description  Highlights audio controls and buttons, adds customizable
 // @author       Me
 // @match        https://www.collinsdictionary.com/dictionary/french-english/*
@@ -33,6 +33,21 @@ function log(level, ...args) {
   }
 }
 
+async function copyToClipboard(text) {
+  try {
+    // Check current clipboard content first
+    const currentClipboard = await navigator.clipboard.readText();
+    if (currentClipboard === text) {
+      console.log('⚠ IGR DUP:', text);
+      return;
+    }
+
+    await navigator.clipboard.writeText(text);
+    console.log('✅✅ Text copied to clipboard:', text);
+  } catch (err) {
+    console.error('❌❌ Failed to copy:', err);
+  }
+}
 
 // Collins Dictionary functionality
 function setupCollinsDictionary() {
@@ -86,7 +101,7 @@ function setupPronunciationElements() {
             return;
           }
           // When Option/Alt is pressed, only copy URL
-          navigator.clipboard.writeText(`${mp3Url}`)
+          copyToClipboard(`${mp3Url}`)
               .then(() => {
                 showNotification(
                     `${pronText}'s URL has been copied to clipboard`);
@@ -100,7 +115,7 @@ function setupPronunciationElements() {
           if (pronText.length === 0) {
             return;
           }
-          navigator.clipboard.writeText(`${pronText}`)
+          copyToClipboard(`${pronText}`)
               .then(() => {
                 showNotification(`${pronText}'s copied to clipboard`);
               })
@@ -177,7 +192,7 @@ function setupConjugationElements() {
         log(LOG_LEVELS.DEBUG, `Formatted conjugation text: ${ret}`);
 
         // Copy to clipboard
-        navigator.clipboard.writeText(ret)
+        copyToClipboard(ret)
             .then(() => {
               log(LOG_LEVELS.INFO,
                   `Conjugation copied to clipboard successfully`);
