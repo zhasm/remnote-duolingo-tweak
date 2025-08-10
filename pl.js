@@ -5,7 +5,7 @@
 // @description  Highlights audio controls and buttons, adds customizable
 // @author       Me
 // @match        https://dictionary.e-polish.eu/word/*
-// @icon         https://www.google.com/s2/favicons?sz=64&domain=workers.dev
+// @icon         https://www.google.com/s2/favicons?sz=64&domain=dictionary.e-polish.eu
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_addStyle
