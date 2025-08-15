@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Audio Control Highlighter and Replay [remnote]
 // @namespace    http://tampermonkey.net/
-// @version      1.004-20250720-2015
+// @version      1.005-20250815-1701
 // @description  Highlights audio controls and buttons, adds customizable
 // @author       Me
 // @match        https://www.remnote.com/*
@@ -101,6 +101,37 @@ GM_addStyle(`
           span[dir="ltr"] button:hover {
               background-color: #4a90e2 !important;
               color: white !important;
+          }
+
+          .rem-text, .indented-rem, .ml-1, .flex * {
+            font-family: "Times New Roman", "LXGWWenKai-Light", sans-serif !important;
+          }
+
+          .has-highlight-color.highlight-color--yellow {
+            background-color: yellow !important;
+            color: black; /* Ensure text remains readable */
+          }
+
+          @media (prefers-color-scheme: dark) {
+            .has-highlight-color.highlight-color--yellow {
+              background-color: #ffcc00 !important; /* A slightly darker, less intense yellow */
+              color: black !important; /* Keep text black for better contrast */
+              text-shadow: none !important; /* Remove any text shadows that might interfere */
+            }
+          }
+          div.type-answer textarea {
+            font-size: 1.5em !important;
+          }
+
+          .rem-text,
+          .indented-rem,
+          .ml-1,
+          .flex * {
+            font-family: "Times New Roman", "LXGWWenKai-Light", sans-serif !important;
+          }
+
+          div.queue-message img[alt="dog gif"] {
+            display: none !important;
           }
       `);
 
