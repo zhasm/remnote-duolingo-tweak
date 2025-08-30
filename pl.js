@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Polish Grammar Table Copier [e-polish]
 // @namespace    http://tampermonkey.net/
-// @version      1.002-20250830-1133
+// @version      1.003-20250830-1945
 // @description  Highlights audio controls and buttons, adds customizable
 // @author       Me
 // @match        https://dictionary.e-polish.eu/word/*
@@ -11,6 +11,8 @@
 // @grant        GM_addStyle
 // @grant        GM_registerMenuCommand
 // ==/UserScript==
+// feature:
+// hold option key and click title to copy audio mp3 link
 
 (function() {
 'use strict';
@@ -72,21 +74,24 @@ function GrammarTableHandler() {
   });
 }
 
-function InitClickAudioLink(){
+function InitClickAudioLink() {
   const nodes = document.querySelectorAll('div.container h3');
   nodes.forEach(node => {
-      const aNode = node.querySelector('a.hint-parent');
-      if (aNode) {
-          // Check if the click event is already bound
-          if (!node.dataset.bound) {
-              node.addEventListener('click', () => {
-                copyToClipboard(aNode.href);
-                showNotification(`Audio link ${aNode.href} has been copied to clipboard`);
-              });
-              // Mark this node as bound
-              node.dataset.bound = 'true';
+    const aNode = node.querySelector('a.hint-parent');
+    if (aNode) {
+      // Check if the click event is already bound
+      if (!node.dataset.bound) {
+        node.addEventListener('click', (event) => {
+          // Check if the Option key is held down
+          if (event.altKey) {
+            copyToClipboard(aNode.href);
+            showNotification(`Audio link ${aNode.href} has been copied to clipboard`);
           }
+        });
+        // Mark this node as bound
+        node.dataset.bound = 'true';
       }
+    }
   });
 }
 
