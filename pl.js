@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Polish Grammar Table Copier [e-polish]
 // @namespace    http://tampermonkey.net/
-// @version      1.003-20250830-1945
+// @version      1.004-20250831-1424
 // @description  Highlights audio controls and buttons, adds customizable
 // @author       Me
 // @match        https://dictionary.e-polish.eu/word/*
@@ -13,6 +13,7 @@
 // ==/UserScript==
 // feature:
 // hold option key and click title to copy audio mp3 link
+// hold option key and click gramma table to copy
 
 (function() {
 'use strict';
@@ -55,22 +56,25 @@ function GrammarTableHandler() {
   const selector = 'div[data-name="grammar"]';
   const q = document.querySelector(selector);
 
-  q.addEventListener('click', () => {
-    const lines = [];
-    const rows = q.querySelectorAll('tbody tr');
+  q.addEventListener('click', (event) => {
+    // Check if the Option key is held down
+    if (event.altKey) {
+      const lines = [];
+      const rows = q.querySelectorAll('tbody tr');
 
-    rows.forEach(row => {
-      const cells = row.querySelectorAll('td');
-      if (cells.length > 1) {
-        const caseName = cells[0].textContent.trim();
-        const forms =
-            Array.from(cells).slice(1).map(cell => cell.textContent.trim());
-        lines.push(`${caseName}: ${forms.join(', ')}`);
-      }
-    });
+      rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        if (cells.length > 1) {
+          const caseName = cells[0].textContent.trim();
+          const forms =
+              Array.from(cells).slice(1).map(cell => cell.textContent.trim());
+          lines.push(`${caseName}: ${forms.join(', ')}`);
+        }
+      });
 
-    copyToClipboard(lines.join('\n'));
-    showNotification('Table has been copied to clipboard');
+      copyToClipboard(lines.join('\n'));
+      showNotification('Table has been copied to clipboard');
+    }
   });
 }
 
