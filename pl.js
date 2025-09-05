@@ -1,10 +1,10 @@
 // ==UserScript==
 // @name         Polish Grammar Table Copier [e-polish]
 // @namespace    http://tampermonkey.net/
-// @version      1.004-20250831-1424
+// @version      1.005-20250905-0809
 // @description  Highlights audio controls and buttons, adds customizable
 // @author       Me
-// @match        https://dictionary.e-polish.eu/word/*
+// @match        https://dictionary.e-polish.eu/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=dictionary.e-polish.eu
 // @grant        GM_getValue
 // @grant        GM_setValue
