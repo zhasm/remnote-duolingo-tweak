@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Polish Grammar Table Copier [e-polish]
 // @namespace    http://tampermonkey.net/
-// @version      1.005-20250905-0809
+// @version      1.006-20250913-2000
 // @description  Highlights audio controls and buttons, adds customizable
 // @author       Me
 // @match        https://dictionary.e-polish.eu/*
@@ -99,16 +99,19 @@ function InitClickAudioLink() {
   });
 }
 
-function InitPopUpBlocker(){
+function InitPopUpBlocker() {
+  const elementsToRemove = ['div#glossa-newsletter-popup', 'div#cookieMsgDiv'];
   const intervalId = setInterval(() => {
-      const dialog = document.querySelector('div#glossa-newsletter-popup');
-      if (dialog) {
-          dialog.remove(); // Remove the dialog element
-          clearInterval(intervalId); // Stop the interval
-          console.log("popup has been removed.");
+    elementsToRemove.forEach(selector => {
+      const element = document.querySelector(selector);
+      if (element) {
+        element.remove(); // Remove the dialog element
+        console.log(`${selector} has been removed.`);
       }
+    });
   }, 100);
 }
+
 
 function showNotification(message) {
   const notification = document.createElement('div');
