@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         本地音频重定向 [remnote]
 // @namespace    http://tampermonkey.net/
-// @version      1.006-20250825-0902
+// @version      1.001-20250919-0753
 // @description  Highlights audio controls and buttons, adds customizable
 // @author       Me
 // @match        https://www.remnote.com/*
@@ -15,13 +15,13 @@
 // ==/UserScript==
 // 20250825-0902: add Ctrl+I to press ignore button
 
-(function() {
-'use strict';
-console.log('本地音频重定向 [remnote] loaded');
-const LOCAL_SERVER = "https://127.0.0.1:9999";
+(function () {
+    'use strict';
+    //console.log('本地音频重定向 [remnote] loaded');
+    const LOCAL_SERVER = "https://127.0.0.1:9999";
     const ENABLE_LOCAL = true; // 全局开关
 
-     function checkLocalAudio(filename, callback) {
+    function checkLocalAudio(filename, callback) {
         if (!ENABLE_LOCAL) {
             console.log("[checkLocalAudio] 本地加载已禁用");
             callback(false);
@@ -35,15 +35,15 @@ const LOCAL_SERVER = "https://127.0.0.1:9999";
             method: "HEAD",
             url: url,
             timeout: 2000,
-            onload: function(response) {
+            onload: function (response) {
                 console.log(`[checkLocalAudio] HEAD请求成功，状态码: ${response.status}，文件: ${filename}`);
                 callback(response.status === 200);
             },
-            onerror: function(err) {
+            onerror: function (err) {
                 console.error(`[checkLocalAudio] 请求错误: ${err}, 文件: ${filename}`);
                 callback(false);
             },
-            ontimeout: function() {
+            ontimeout: function () {
                 console.warn(`[checkLocalAudio] 请求超时，文件: ${filename}`);
                 callback(false);
             }
@@ -66,7 +66,7 @@ const LOCAL_SERVER = "https://127.0.0.1:9999";
 
             console.log(`[replaceAudioSources] 检查音频文件: ${filename}`);
 
-            checkLocalAudio(filename, function(localExists) {
+            checkLocalAudio(filename, function (localExists) {
                 if (localExists) {
                     const localSrc = `${LOCAL_SERVER}/${filename}`;
                     console.log(`[replaceAudioSources] 使用本地音频: ${localSrc}`);
@@ -133,5 +133,5 @@ const LOCAL_SERVER = "https://127.0.0.1:9999";
 
     observer.observe(document.body, { childList: true, subtree: true });
 
-console.log('本地音频重定向 [remnote] ended');
+    console.log('本地音频重定向 [remnote] ended');
 })();
