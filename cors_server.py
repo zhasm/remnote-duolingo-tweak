@@ -120,6 +120,14 @@ class CORSRequestHandler(SimpleHTTPRequestHandler):
 
 
 if __name__ == '__main__':
+
+    script_path = os.path.abspath(__file__)
+    directory_path = os.path.dirname(script_path)
+    # print("当前脚本的绝对路径:", script_path)
+    # print("当前脚本所在目录的绝对路径:", directory_path)
+    # set working path:
+    os.chdir(directory_path)
+
     port = 9999
     print(f"[CORS] Server starting on 0.0.0.0:{port}...")
     httpd = HTTPServer(('0.0.0.0', port), CORSRequestHandler)
