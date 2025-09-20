@@ -8,6 +8,20 @@ import re
 from urllib.parse import urlparse
 import time
 import threading
+import sys
+import importlib.util
+
+# Try regular import first, fall back to loading the local `colors.py`
+try:
+    from colors import magenta, red, green
+except Exception:
+    colors_path = os.path.join(os.path.dirname(__file__), 'colors.py')
+    spec = importlib.util.spec_from_file_location('colors', colors_path)
+    colors = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(colors)
+    magenta = colors.magenta
+    red = colors.red
+    green = colors.green
 
 REMOTE_SERVER = 'https://pub-c6b11003307646e98afc7540d5f09c41.r2.dev'
 
@@ -42,14 +56,14 @@ class CORSRequestHandler(SimpleHTTPRequestHandler):
             print(f"[CORS] Path does not match expected pattern, skipping remote fetch: {path_only}")
         elif not os.path.exists(local_path):  # and self.path.endswith('.mp3'):
             remote_url = REMOTE_SERVER + self.path
-            print(f"\033[1;35m[CORS] Missing locally, fetching: {remote_url}\033[0m")
+            print(magenta(f"[CORS] Missing locally, fetching: {remote_url}"))
             try:
                 # Use helper to fetch with UA and retries
                 self._fetch_remote_with_retries(remote_url, local_path)
             except Exception as e:
-                print(f"\033[1;31m[CORS] Fetch failed: {e}\033[0m")
+                print(red(f"[CORS] Fetch failed: {e}"))
         else:
-            print(f"\033[1;35m[CORS] {self.path} hits locally, \033[0m")
+            print(magenta(f"[CORS] {self.path} hits locally,"))
 
         super().do_GET()
 
@@ -60,20 +74,19 @@ class CORSRequestHandler(SimpleHTTPRequestHandler):
         # Only attempt remote fetch for files matching 32 hex chars + .mp3
         if not os.path.exists(local_path):  # and self.path.endswith('.mp3'):
             remote_url = REMOTE_SERVER + self.path
-            print(f"\033[1;35m[CORS] Missing locally, fetching: {remote_url}\033[0m")
+            print(magenta(f"[CORS] Missing locally, fetching: {remote_url}"))
             # Start background fetch so HEAD responses don't block waiting for remote
             def _bg_fetch():
                 try:
                     # Use same helper as GET to fetch with UA and retries
                     self._fetch_remote_with_retries(remote_url, local_path)
-                    # print(f"\033[1;32m[CORS] Saved: {local_path}\033[0m")
                 except Exception as e:
-                    print(f"\033[1;31m[CORS] Background fetch failed: {e}\033[0m")
+                    print(red(f"[CORS] Background fetch failed: {e}"))
 
             t = threading.Thread(target=_bg_fetch, daemon=True)
             t.start()
         else:
-            print(f"\033[1;35m[CORS] {self.path} hits locally, \033[0m")
+            print(green(f"[CORS] {self.path} hits locally"))
 
         super().do_HEAD()
 
@@ -107,11 +120,11 @@ class CORSRequestHandler(SimpleHTTPRequestHandler):
                 os.makedirs(os.path.dirname(local_path), exist_ok=True)
                 with open(local_path, 'wb') as f:
                     f.write(data)
-                print(f"\033[1;32m[CORS] Saved: {local_path} (attempt {attempt})\033[0m")
+                    print(green(f"[CORS] Saved: {local_path} (attempt {attempt})"))
                 return
             except Exception as e:
                 last_exc = e
-                print(f"\033[1;31m[CORS] Fetch attempt remote: [{remote_url}], local: [{local_path}], attempt: [{attempt}] failed: [{e}]\033[0m")
+                print(red(f"[CORS] Fetch attempt remote: [{remote_url}], local: [{local_path}], attempt: [{attempt}] failed: [{e}]"))
                 if attempt < retries:
                     print(f"[CORS] Retrying in {delay} seconds...")
                     time.sleep(delay)
@@ -123,14 +136,16 @@ if __name__ == '__main__':
 
     script_path = os.path.abspath(__file__)
     directory_path = os.path.dirname(script_path)
-    # print("当前脚本的绝对路径:", script_path)
-    # print("当前脚本所在目录的绝对路径:", directory_path)
+    print(f"当前脚本所在目录的绝对路径:{green(directory_path)}")
     # set working path:
     os.chdir(directory_path)
 
+    host = '0.0.0.0'
     port = 9999
-    print(f"[CORS] Server starting on 0.0.0.0:{port}...")
-    httpd = HTTPServer(('0.0.0.0', port), CORSRequestHandler)
+    link = f"https://{host}:{port}"
+
+    print(f"[CORS] Server starting on {green(link)}...")
+    httpd = HTTPServer((host, port), CORSRequestHandler)
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     context.load_cert_chain(certfile='server.pem')
     httpd.socket = context.wrap_socket(httpd.socket, server_side=True)
