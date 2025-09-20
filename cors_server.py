@@ -8,7 +8,6 @@ import re
 from urllib.parse import urlparse
 import time
 import threading
-import sys
 import importlib.util
 
 # Try regular import first, fall back to loading the local `colors.py`
@@ -76,6 +75,7 @@ class CORSRequestHandler(SimpleHTTPRequestHandler):
             remote_url = REMOTE_SERVER + self.path
             print(magenta(f"[CORS] Missing locally, fetching: {remote_url}"))
             # Start background fetch so HEAD responses don't block waiting for remote
+
             def _bg_fetch():
                 try:
                     # Use same helper as GET to fetch with UA and retries

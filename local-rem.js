@@ -78,21 +78,8 @@
                     audio.src = localSrc;
                     audio.dataset.localReplaced = 'true';
 
-                    // 自动播放一次：仅在页面上只有一个 audio 元素时触发
-                    audio.addEventListener('canplay', function playOnce() {
-                        try {
-                            const totalAudios = document.querySelectorAll('audio[src]').length;
-                            if (totalAudios === 1) {
-                                audio.play();
-                            } else {
-                                console.log('[replaceAudioSources] 页面有多个 audio，跳过自动播放');
-                            }
-                        } catch (e) {
-                            console.warn('[replaceAudioSources] 自动播放失败:', e);
-                        } finally {
-                            audio.removeEventListener('canplay', playOnce);
-                        }
-                    });
+                    // 已替换为本地资源（不自动播放）
+                    // (Autoplay removed — keep dataset flag for replacement tracking)
 
                     // 添加错误处理，如果本地加载失败则回退
                     audio.addEventListener('error', function fallback() {
