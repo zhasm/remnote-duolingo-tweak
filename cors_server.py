@@ -24,6 +24,10 @@ except Exception:
 
 REMOTE_SERVER = 'https://pub-c6b11003307646e98afc7540d5f09c41.r2.dev'
 
+# Guard concurrent remote fetches by URL
+_in_progress = set()
+_in_progress_lock = threading.Lock()
+
 
 class CORSRequestHandler(SimpleHTTPRequestHandler):
     def end_headers(self):
@@ -47,22 +51,15 @@ class CORSRequestHandler(SimpleHTTPRequestHandler):
     def do_GET(self):
         print(f"[CORS] GET {self.path}")
         local_path = self.translate_path(self.path)
-        print(f'local path to find: {local_path} ')
-        # Only attempt remote fetch for files matching 32 hex chars + .mp3
+        # Only attempt to serve; fetching should be initiated by HEAD handler
         parsed = urlparse(self.path)
         path_only = parsed.path
         if not re.search(r"/[a-f0-9]{32}\.mp3$", path_only):
-            print(f"[CORS] Path does not match expected pattern, skipping remote fetch: {path_only}")
-        elif not os.path.exists(local_path):  # and self.path.endswith('.mp3'):
-            remote_url = REMOTE_SERVER + self.path
-            print(magenta(f"[CORS] Missing locally, fetching: {remote_url}"))
-            try:
-                # Use helper to fetch with UA and retries
-                self._fetch_remote_with_retries(remote_url, local_path)
-            except Exception as e:
-                print(red(f"[CORS] Fetch failed: {e}"))
+            print(f"[CORS] GET: path does not match pattern, serving directly: {path_only}")
+        elif os.path.exists(local_path):
+            print(magenta(f"[CORS] GET: serving local file: {local_path}"))
         else:
-            print(magenta(f"[CORS] {self.path} hits locally,"))
+            print(magenta(f"[CORS] GET: file missing locally (HEAD may have triggered background fetch): {local_path}"))
 
         super().do_GET()
 
@@ -103,33 +100,49 @@ class CORSRequestHandler(SimpleHTTPRequestHandler):
 
         Writes the fetched bytes to local_path on success.
         """
-        # parsed = urlparse(self.path)
-        # path_only = parsed.path
-
-        last_exc = None
+        # Validate path pattern first to avoid locking for irrelevant URLs
         if not re.search(r"/[a-f0-9]{32}\.mp3$", remote_url):
             print(f"[CORS] Path does not match expected pattern, skipping remote fetch: {remote_url}")
-            return
-        ua = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
-        req = urllib.request.Request(remote_url, headers={"User-Agent": ua})
+            return False
 
-        for attempt in range(1, retries + 1):
-            try:
-                with urllib.request.urlopen(req, timeout=30) as resp:
-                    data = resp.read()
-                os.makedirs(os.path.dirname(local_path), exist_ok=True)
-                with open(local_path, 'wb') as f:
-                    f.write(data)
+        # Prevent duplicate concurrent fetches for the same URL
+        with _in_progress_lock:
+            if remote_url in _in_progress:
+                print(magenta(f"[CORS] ❌ Duplicate fetch ignored for: {remote_url}"))
+                return False
+            _in_progress.add(remote_url)
+        last_exc = None
+        try:
+            ua = (
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+            )
+            req = urllib.request.Request(remote_url, headers={"User-Agent": ua})
+
+            for attempt in range(1, retries + 1):
+                try:
+                    with urllib.request.urlopen(req, timeout=30) as resp:
+                        data = resp.read()
+                    os.makedirs(os.path.dirname(local_path), exist_ok=True)
+                    with open(local_path, 'wb') as f:
+                        f.write(data)
                     print(green(f"[CORS] Saved: {local_path} (attempt {attempt})"))
-                return
-            except Exception as e:
-                last_exc = e
-                print(red(f"[CORS] Fetch attempt remote: [{remote_url}], local: [{local_path}], attempt: [{attempt}] failed: [{e}]"))
-                if attempt < retries:
-                    print(f"[CORS] Retrying in {delay} seconds...")
-                    time.sleep(delay)
-        # If we reach here, all attempts failed
-        raise last_exc
+                    return True
+                except Exception as e:
+                    last_exc = e
+                    print(red(
+                        f"[CORS] Fetch attempt remote: [{remote_url}], local: [{local_path}], "
+                        f"attempt: [{attempt}] failed: [{e}]"
+                    ))
+                    if attempt < retries:
+                        print(f"[CORS] Retrying in {delay} seconds...")
+                        time.sleep(delay)
+            # If we reach here, all attempts failed
+            raise last_exc
+        finally:
+            with _in_progress_lock:
+                _in_progress.discard(remote_url)
+
 
 
 if __name__ == '__main__':
