@@ -20,6 +20,15 @@
     //console.log('本地音频重定向 [remnote] loaded');
     const LOCAL_SERVER = "https://127.0.0.1:9999";
     const ENABLE_LOCAL = true; // 全局开关
+    // Track whether the user has interacted with the page (required for autoplay)
+    let __userInteracted = false;
+    const __userInteractionHandler = () => {
+        __userInteracted = true;
+        ['click', 'keydown', 'pointerdown', 'touchstart'].forEach(evt =>
+            window.removeEventListener(evt, __userInteractionHandler));
+    };
+    ['click', 'keydown', 'pointerdown', 'touchstart'].forEach(evt =>
+        window.addEventListener(evt, __userInteractionHandler, { once: true }));
 
     function checkLocalAudio(filename, callback) {
         if (!ENABLE_LOCAL) {
@@ -52,7 +61,16 @@
 
     function replaceAudioSources() {
         const audioElements = document.querySelectorAll('audio[src]');
-        // console.log(`[replaceAudioSources] 找到 ${audioElements.length} 个 audio 元素`);
+
+        const len = audioElements.length;
+        if (len <= 0) {
+            console.log('❌[replaceAudioSources] 未找到 audio 元素，跳过');
+            return;
+        }
+        if (len > 1) {
+            console.log(`🔊[replaceAudioSources] 找到 ${len} 个 audio 元素, ignore`);
+            return;
+        }
 
         audioElements.forEach(audio => {
             // If already replaced by local, skip
@@ -78,9 +96,6 @@
                     audio.src = localSrc;
                     audio.dataset.localReplaced = 'true';
 
-                    // 已替换为本地资源（不自动播放）
-                    // (Autoplay removed — keep dataset flag for replacement tracking)
-
                     // 添加错误处理，如果本地加载失败则回退
                     audio.addEventListener('error', function fallback() {
                         console.warn(`[replaceAudioSources] 本地音频加载失败，回退到远程: ${originalSrc}`);
@@ -101,6 +116,33 @@
                 }
             });
         });
+
+        const onlyAudio = audioElements[0];
+        if (onlyAudio && onlyAudio.dataset.localReplaced === 'true' && onlyAudio.paused && onlyAudio.dataset.localAutoPlayed !== 'true') {
+            // if (!__userInteracted) {
+            //     console.log('[replaceAudioSources] 页面尚未有用户交互，跳过自动播放以避免被阻止');
+            // } else {
+            console.log('[replaceAudioSources] 仅有一个音频且已替换为本地，尝试自动播放');
+            const playPromise = onlyAudio.play();
+            if (playPromise && playPromise.then) {
+                playPromise.then(() => {
+                    onlyAudio.dataset.localAutoPlayed = 'true';
+                    console.log('✅✅✅[replaceAudioSources] 自动播放成功 ✅');
+                }).catch(err => {
+                    console.warn('❌❌❌[replaceAudioSources] 自动播放失败:', err);
+                });
+            } else {
+                // Fallback: assume started and set flag
+                try {
+                    onlyAudio.dataset.localAutoPlayed = 'true';
+                    console.log('✅✅✅[replaceAudioSources] 自动播放(未知promise) 假定成功');
+                } catch (e) {
+                    console.warn('❌[replaceAudioSources] 无法设置 autoplay 标志:', e);
+                }
+            }
+            // }
+        }
+
     }
 
     // 初始替换延迟1000ms，给页面一点加载时间
