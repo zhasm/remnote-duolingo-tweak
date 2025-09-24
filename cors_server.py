@@ -282,11 +282,22 @@ class CORSRequestHandler(SimpleHTTPRequestHandler):
         else:
             return f'{formatted_size:.1f}{units[unit_index]}'
 
+
+def safe_path(p):
+    user = os.path.basename(os.path.expanduser("~"))
+
+    if p.startswith(f'/Users/{user}'):
+        p = p.replace(f'/Users/{user}', '~')
+
+    return p
+
+
 if __name__ == '__main__':
 
     script_path = os.path.abspath(__file__)
     directory_path = os.path.dirname(script_path)
-    print(f"当前脚本所在目录的绝对路径:{green(directory_path)}")
+
+    print(f"Work path: {green(safe_path(directory_path))}")
     # set working path:
     os.chdir(directory_path)
 
