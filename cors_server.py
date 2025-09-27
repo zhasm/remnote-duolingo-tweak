@@ -12,6 +12,9 @@ import importlib.util
 import sys
 import html
 from datetime import datetime
+import argparse
+
+VERBOSE = False # Added global variable
 
 # Try regular import first, fall back to loading the local `colors.py`
 try:
@@ -26,6 +29,7 @@ except Exception:
     green = colors.green
 
 REMOTE_SERVER = 'https://pub-c6b11003307646e98afc7540d5f09c41.r2.dev'
+
 
 # Guard concurrent remote fetches by URL
 _in_progress = set()
@@ -51,8 +55,10 @@ class CORSRequestHandler(SimpleHTTPRequestHandler):
         # Log request line, code, and size
         print(f"[{date_str()}][{current_pid}][CORS] {self.requestline} -> {code} {size}")
         # Log headers
-        for k, v in self.headers.items():
-            print(f"[{date_str()}][{current_pid}][CORS] Header: {k}: {v}")
+        global VERBOSE
+        if VERBOSE:
+            for k, v in self.headers.items():
+                print(f"[{date_str()}][{current_pid}][:CORS] Header {k}: {v}")
 
     def do_GET(self):
         print(f"[{date_str()}][{current_pid}][CORS] GET {self.path}")
@@ -296,6 +302,12 @@ def safe_path(p):
 
 
 if __name__ == '__main__':
+
+    parser = argparse.ArgumentParser(description="Run a simple CORS-enabled HTTPS server with remote file fetching.")
+    parser.add_argument('-v', '--verbose', action='store_true', help="Enable verbose logging (e.g., request headers).")
+    args = parser.parse_args()
+
+    VERBOSE = args.verbose # Set global flag based on argument
 
     script_path = os.path.abspath(__file__)
     directory_path = os.path.dirname(script_path)
