@@ -11,9 +11,12 @@ max_line_length = 200
 
 [*.{js,jsx,ts,tsx}]
 # JavaScript/TypeScript-specific rules
-indent_size = 2
-max_line_length = 200  # Adjust based on your team's preference
+indent_size = 4
+max_line_length = 200
 indent_style = space
 
 [*.json]
 indent_size = 2
+
+[*.go]
+indent_size = 4

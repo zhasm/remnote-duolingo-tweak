@@ -15,8 +15,9 @@
     'use strict';
 
     // CSS styles to be injected
+
     const MY_CSS = `
-    .info-text {
+        .info-text {
             display: none; /* Hide the additional text by default */
             color: gray; /* Optional: Change the color of the additional text */
         }
@@ -32,6 +33,7 @@
             /* Mark processed elements to avoid reprocessing */
         }
     `;
+
     if (typeof GM_addStyle !== 'undefined') {
         GM_addStyle(MY_CSS);
     } else {
@@ -40,32 +42,37 @@
         document.head.appendChild(style);
     }
 
+    document.head.appendChild(style);
+
     function toggleInfo(event) {
         event.stopPropagation(); // Prevent event bubbling
         event.preventDefault(); // Prevent default behavior
 
         const icon = event.target;
 
-        if (icon.toggleSpans && icon.originalSpans) {
-            // Toggle visibility of hidden spans vs original spans
-            const isVisible = icon.toggleSpans[0].style.display !== 'none';
-
-            if (isVisible) {
-                // Hide the detailed content, show the icon only
-                icon.toggleSpans.forEach(span => {
-                    span.style.display = 'none';
+        if (icon.originalSpansData) {
+            if (icon.isExpanded) {
+                // Collapse: Hide the detailed content, show only the icon
+                icon.originalSpansData.forEach((spanData, index) => {
+                    if (index === 0) {
+                        // First span: restore text before parenthesis + keep icon
+                        const openSpanText = spanData.span.textContent || '';
+                        const textBeforeParen = openSpanText.substring(0, openSpanText.indexOf('('));
+                        spanData.span.innerHTML = textBeforeParen;
+                        spanData.span.appendChild(icon); // Keep the icon
+                    } else {
+                        // Hide other spans
+                        spanData.span.style.display = 'none';
+                    }
                 });
-                icon.originalSpans.forEach(span => {
-                    span.style.display = 'none';
-                });
+                icon.isExpanded = false;
             } else {
-                // Show the detailed content, hide the icon
-                icon.toggleSpans.forEach(span => {
-                    span.style.display = 'inline';
+                // Expand: Show the full content with parentheses
+                icon.originalSpansData.forEach((spanData, index) => {
+                    spanData.span.innerHTML = spanData.originalHTML;
+                    spanData.span.style.display = spanData.originalDisplay;
                 });
-                icon.originalSpans.forEach(span => {
-                    span.style.display = 'inline';
-                });
+                icon.isExpanded = true;
             }
         } else {
             // Fallback for simple case
@@ -89,109 +96,95 @@
             container.classList.add('info-container-processed');
 
             // Get all linear-editor-item spans within this container
-            const spans = container.querySelectorAll('span.linear-editor-item');
+            const spans = Array.from(container.querySelectorAll('span.linear-editor-item'));
             if (spans.length === 0) return;
 
-            // Extract text content from all spans to find parentheses
-            let fullText = '';
-            let spanMap = []; // Map characters to their corresponding spans
+            // Find parentheses by looking at the actual spans and their content
+            let openParenIndex = -1;
+            let closeParenIndex = -1;
 
-            spans.forEach(span => {
+            // Look for opening parenthesis
+            for (let i = 0; i < spans.length; i++) {
+                const span = spans[i];
                 const textContent = span.textContent || '';
-                const startIndex = fullText.length;
-                fullText += textContent;
 
-                // Map each character to its span
-                for (let i = 0; i < textContent.length; i++) {
-                    spanMap.push({
-                        span: span,
-                        localIndex: i,
-                        globalIndex: startIndex + i
-                    });
+                // Check if this span contains an opening parenthesis
+                if (textContent.includes('(')) {
+                    openParenIndex = i;
+                    break;
                 }
-            });
-
-            // Find parentheses content in the full text
-            const regex = /\(([^)]+)\)/g;
-            let match;
-            const parenthesesRanges = [];
-
-            while ((match = regex.exec(fullText)) !== null) {
-                const startIndex = match.index; // Start of '('
-                const endIndex = match.index + match[0].length - 1; // End of ')'
-                const content = match[1]; // Content between parentheses
-
-                parenthesesRanges.push({
-                    start: startIndex,
-                    end: endIndex,
-                    content: content,
-                    fullMatch: match[0]
-                });
             }
 
-            // Process each parentheses range
-            parenthesesRanges.reverse().forEach(range => {
-                // Find the spans that contain the opening and closing parentheses
-                const openParenSpan = spanMap[range.start]?.span;
-                const closeParenSpan = spanMap[range.end]?.span;
+            // If we found an opening parenthesis, look for the closing one
+            if (openParenIndex !== -1) {
+                for (let i = openParenIndex; i < spans.length; i++) {
+                    const span = spans[i];
+                    const textContent = span.textContent || '';
 
-                if (!openParenSpan || !closeParenSpan) return;
-
-                // Find all spans between and including the parentheses
-                const spansBetween = [];
-                let foundStart = false;
-
-                spans.forEach(span => {
-                    if (span === openParenSpan) {
-                        foundStart = true;
+                    // Check if this span contains a closing parenthesis
+                    if (textContent.includes(')')) {
+                        closeParenIndex = i;
+                        break;
                     }
-                    if (foundStart) {
-                        spansBetween.push(span);
-                    }
-                    if (span === closeParenSpan) {
-                        foundStart = false;
-                    }
-                });
+                }
+            }
 
-                if (spansBetween.length === 0) return;
+            // If we found both parentheses, process them
+            if (openParenIndex !== -1 && closeParenIndex !== -1 && closeParenIndex > openParenIndex) {
+                const openParenSpan = spans[openParenIndex];
+                const closeParenSpan = spans[closeParenIndex];
 
-                // Create the info icon and hidden text
+                // Get all spans between and including the parentheses
+                const spansBetween = spans.slice(openParenIndex, closeParenIndex + 1);
+
+                // Extract content for tooltip (text only, no HTML)
+                let contentText = '';
+                for (let i = openParenIndex; i <= closeParenIndex; i++) {
+                    const spanText = spans[i].textContent || '';
+                    contentText += spanText;
+                }
+
+                // Remove the parentheses from the content text for tooltip
+                contentText = contentText.replace(/^\(/, '').replace(/\)$/, '').trim();
+
+                // Create the info icon
                 const infoIcon = document.createElement('span');
                 infoIcon.className = 'info-icon';
                 infoIcon.innerHTML = 'ℹ️';
-                infoIcon.title = `Click to toggle: ${range.content}`;
+                infoIcon.title = contentText ? `Click to toggle: ${contentText}` : 'Click to toggle content';
                 infoIcon.onclick = toggleInfo;
 
-                const hiddenSpans = [];
-
-                // Hide all spans that contain parentheses content and store them
-                spansBetween.forEach((span, index) => {
-                    const spanClone = span.cloneNode(true);
-                    spanClone.classList.add('info-text');
-                    spanClone.style.display = 'none';
-                    hiddenSpans.push(spanClone);
-
-                    // For the first span (contains opening parenthesis), replace with icon
-                    if (index === 0 && span === openParenSpan) {
-                        // Clear the span content and add the icon
-                        span.innerHTML = '';
-                        span.appendChild(infoIcon);
-
-                        // Add all hidden spans after the icon
-                        hiddenSpans.forEach(hiddenSpan => {
-                            span.appendChild(hiddenSpan);
-                        });
-                    } else if (span !== openParenSpan) {
-                        // Hide other spans in the range
-                        span.style.display = 'none';
-                        span.classList.add('parentheses-content-hidden');
-                    }
+                // Store original spans data for toggling
+                const originalSpansData = [];
+                spansBetween.forEach(span => {
+                    originalSpansData.push({
+                        span: span,
+                        originalHTML: span.innerHTML,
+                        originalDisplay: span.style.display || ''
+                    });
                 });
 
-                // Update the toggle function to handle multiple spans
-                infoIcon.toggleSpans = hiddenSpans;
-                infoIcon.originalSpans = spansBetween.filter(s => s !== openParenSpan);
-            });
+                // Clear the opening parenthesis span and add the icon
+                const openSpanText = openParenSpan.textContent || '';
+                const textBeforeParen = openSpanText.substring(0, openSpanText.indexOf('('));
+
+                openParenSpan.innerHTML = textBeforeParen;
+                openParenSpan.appendChild(infoIcon);
+
+                // Hide all spans that contain parentheses content
+                spansBetween.forEach((span, index) => {
+                    if (index === 0) {
+                        // For the first span, we already handled it above
+                        return;
+                    }
+                    span.style.display = 'none';
+                    span.classList.add('parentheses-content-hidden');
+                });
+
+                // Store data for toggle function
+                infoIcon.originalSpansData = originalSpansData;
+                infoIcon.isExpanded = false;
+            }
         });
     }
 
@@ -223,7 +216,7 @@
                 isProcessing = false;
             }
         }
-    }, 300); // Wait 500ms after last change
+    }, 500); // Wait 500ms after last change
 
     // Monitor for dynamic changes with more specific configuration
     const observer = new MutationObserver((mutations) => {

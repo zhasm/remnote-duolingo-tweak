@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#cors_server.py!/usr/bin/env python3
 
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 import ssl
@@ -11,6 +11,7 @@ import threading
 import importlib.util
 import sys
 import html
+from datetime import datetime
 
 # Try regular import first, fall back to loading the local `colors.py`
 try:
@@ -31,6 +32,8 @@ _in_progress = set()
 _in_progress_lock = threading.Lock()
 current_pid = os.getpid()
 
+def date_str():
+    return datetime.now().strftime("%m%d %H:%M:%S.%f")[:-3]
 
 class CORSRequestHandler(SimpleHTTPRequestHandler):
     def end_headers(self):
@@ -46,34 +49,34 @@ class CORSRequestHandler(SimpleHTTPRequestHandler):
 
     def log_request(self, code='-', size='-'):
         # Log request line, code, and size
-        print(f"[{current_pid}][CORS] {self.requestline} -> {code} {size}")
+        print(f"[{date_str()}][{current_pid}][CORS] {self.requestline} -> {code} {size}")
         # Log headers
         for k, v in self.headers.items():
-            print(f"[{current_pid}][CORS] Header: {k}: {v}")
+            print(f"[{date_str()}][{current_pid}][CORS] Header: {k}: {v}")
 
     def do_GET(self):
-        print(f"[{current_pid}][CORS] GET {self.path}")
+        print(f"[{date_str()}][{current_pid}][CORS] GET {self.path}")
         local_path = self.translate_path(self.path)
         # Only attempt to serve; fetching should be initiated by HEAD handler
         parsed = urlparse(self.path)
         path_only = parsed.path
         if not re.search(r"/[a-f0-9]{32}\.mp3$", path_only):
-            print(f"[{current_pid}][CORS] GET: path does not match pattern, serving directly: {path_only}")
+            print(f"[{date_str()}][{current_pid}][CORS] GET: path does not match pattern, serving directly: {path_only}")
         elif os.path.exists(local_path):
-            print(magenta(f"[{current_pid}][CORS] GET: serving local file: {local_path}"))
+            print(magenta(f"[{date_str()}][{current_pid}][CORS] GET: serving local file: {local_path}"))
         else:
-            print(magenta(f"[{current_pid}][CORS] GET: file missing locally (HEAD may have triggered background fetch): {local_path}"))
+            print(magenta(f"[{date_str()}][{current_pid}][CORS] GET: file missing locally (HEAD may have triggered background fetch): {local_path}"))
 
         super().do_GET()
 
     def do_HEAD(self):
-        print(f"[{current_pid}][CORS] HEAD {self.path}")
+        print(f"[{date_str()}][{current_pid}][CORS] HEAD {self.path}")
         local_path = self.translate_path(self.path)
         print(f'local path to find: {local_path} ')
         # Only attempt remote fetch for files matching 32 hex chars + .mp3
         if not os.path.exists(local_path):  # and self.path.endswith('.mp3'):
             remote_url = REMOTE_SERVER + self.path
-            print(magenta(f"[{current_pid}][CORS] Missing locally, fetching: {remote_url}"))
+            print(magenta(f"[{date_str()}][{current_pid}][CORS] Missing locally, fetching: {remote_url}"))
             # Start background fetch so HEAD responses don't block waiting for remote
 
             def _bg_fetch():
@@ -81,17 +84,17 @@ class CORSRequestHandler(SimpleHTTPRequestHandler):
                     # Use same helper as GET to fetch with UA and retries
                     self._fetch_remote_with_retries(remote_url, local_path)
                 except Exception as e:
-                    print(red(f"[{current_pid}][CORS] Background fetch failed: {e}"))
+                    print(red(f"[{date_str()}][{current_pid}][CORS] Background fetch failed: {e}"))
 
             t = threading.Thread(target=_bg_fetch, daemon=True)
             t.start()
         else:
-            print(green(f"[{current_pid}][CORS] {self.path} hits locally"))
+            print(green(f"[{date_str()}][{current_pid}][CORS] {self.path} hits locally"))
 
         super().do_HEAD()
 
     def do_OPTIONS(self):
-        print(f"[{current_pid}][CORS] OPTIONS {self.path}")
+        print(f"[{date_str()}][{current_pid}][CORS] OPTIONS {self.path}")
         self.send_response(200, "ok")
         self.send_header('Access-Control-Allow-Origin', 'https://www.remnote.com')
         self.send_header('Access-Control-Allow-Methods', 'GET,HEAD,OPTIONS')
@@ -105,13 +108,13 @@ class CORSRequestHandler(SimpleHTTPRequestHandler):
         """
         # Validate path pattern first to avoid locking for irrelevant URLs
         if not re.search(r"/[a-f0-9]{32}\.mp3$", remote_url):
-            print(f"[{current_pid}][CORS] Path does not match expected pattern, skipping remote fetch: {remote_url}")
+            print(f"[{date_str()}][{current_pid}][CORS] Path does not match expected pattern, skipping remote fetch: {remote_url}")
             return False
 
         # Prevent duplicate concurrent fetches for the same URL
         with _in_progress_lock:
             if remote_url in _in_progress:
-                print(magenta(f"[{current_pid}][CORS] ❌ Duplicate fetch ignored for: {remote_url}"))
+                print(magenta(f"[{date_str()}][{current_pid}][CORS] ❌ Duplicate fetch ignored for: {remote_url}"))
                 return False
             _in_progress.add(remote_url)
         last_exc = None
@@ -129,16 +132,16 @@ class CORSRequestHandler(SimpleHTTPRequestHandler):
                     os.makedirs(os.path.dirname(local_path), exist_ok=True)
                     with open(local_path, 'wb') as f:
                         f.write(data)
-                    print(green(f"[{current_pid}][CORS] Saved: {local_path} (attempt {attempt})"))
+                    print(green(f"[{date_str()}][{current_pid}][CORS] Saved: {local_path} (attempt {attempt})"))
                     return True
                 except Exception as e:
                     last_exc = e
                     print(red(
-                        f"[{current_pid}][CORS] Fetch attempt remote: [{remote_url}], local: [{local_path}], "
+                        f"[{date_str()}][{current_pid}][CORS] Fetch attempt remote: [{remote_url}], local: [{local_path}], "
                         f"attempt: [{attempt}] failed: [{e}]"
                     ))
                     if attempt < retries:
-                        print(f"[{current_pid}][CORS] Retrying in {delay} seconds...")
+                        print(f"[{date_str()}][{current_pid}][CORS] Retrying in {delay} seconds...")
                         time.sleep(delay)
             # If we reach here, all attempts failed
             raise last_exc
@@ -305,7 +308,7 @@ if __name__ == '__main__':
     port = 9999
     link = f"https://{host}:{port}"
 
-    print(f"[{current_pid}][CORS] Server starting on {green(link)}...")
+    print(f"[{date_str()}][{current_pid}][CORS] Server starting on {green(link)}...")
     httpd = HTTPServer((host, port), CORSRequestHandler)
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     context.load_cert_chain(certfile='server.pem')
