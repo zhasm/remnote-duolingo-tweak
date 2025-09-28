@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         click infor [remnote]
 // @namespace    http://tampermonkey.net/
-// @version      1.002-20250922
+// @version      1.003-20250928-1050
 // @description  Highlights audio controls and buttons, adds customizable
 // @author       Me
 // @match        https://www.remnote.com/*
@@ -272,10 +272,49 @@
 
     initialize();
 
+    // Hotkey: Ctrl/Cmd + I -> click last .info-icon
+    // Keep handler small, testable and removable on unload
+    function _isEditableElement(el) {
+        if (!el || el.nodeType !== Node.ELEMENT_NODE) return false;
+        const tag = el.tagName;
+        if (!tag) return false;
+        if (tag === 'INPUT' || tag === 'TEXTAREA') return true;
+        if (el.isContentEditable) return true;
+        return false;
+    }
+
+    function _clickLastInfoIcon() {
+        const icons = document.querySelectorAll('.info-icon');
+        if (!icons || icons.length === 0) return false;
+        const last = icons[icons.length - 1];
+        last.click();
+        return true;
+    }
+
+    function _onHotkey(e) {
+        // Only respond to Ctrl/Cmd+I (case-insensitive)
+        if (!(e.ctrlKey || e.metaKey)) return;
+        if (!e.key || e.key.toLowerCase() !== 'i') return;
+        // Ignore when typing in inputs or contenteditable areas
+        if (_isEditableElement(e.target)) return;
+        e.preventDefault();
+        try {
+            const clicked = _clickLastInfoIcon();
+            if (clicked) console.log('[RemNote Script] Ctrl/Cmd+I — clicked last .info-icon');
+            else console.log('[RemNote Script] Ctrl/Cmd+I — no .info-icon found');
+        } catch (err) {
+            console.warn('[RemNote Script] Ctrl/Cmd+I click failed', err);
+        }
+    }
+
+    document.addEventListener('keydown', _onHotkey, false);
+
     // Add cleanup when page unloads
     window.addEventListener('beforeunload', () => {
         if (observer) {
             observer.disconnect();
         }
+        // remove hotkey listener
+        document.removeEventListener('keydown', _onHotkey, false);
     });
 })();
