@@ -37,12 +37,11 @@
     if (typeof GM_addStyle !== 'undefined') {
         GM_addStyle(MY_CSS);
     } else {
+        // Create a <style> element and append it to the document head
         const style = document.createElement('style');
         style.textContent = MY_CSS;
         document.head.appendChild(style);
     }
-
-    document.head.appendChild(style);
 
     function toggleInfo(event) {
         event.stopPropagation(); // Prevent event bubbling
@@ -90,6 +89,7 @@
     function addInfoIcons() {
         // Find all RichTextViewer containers that haven't been processed
         const containers = document.querySelectorAll('.RichTextViewer:not(.info-container-processed)');
+        console.debug('[RemNote Script] addInfoIcons called, containers found:', containers.length);
 
         containers.forEach(container => {
             // Mark container as processed
@@ -97,6 +97,7 @@
 
             // Get all linear-editor-item spans within this container
             const spans = Array.from(container.querySelectorAll('span.linear-editor-item'));
+            console.debug('[RemNote Script] container spans count:', spans.length, 'container:', container);
             if (spans.length === 0) return;
 
             // Find parentheses by looking at the actual spans and their content
