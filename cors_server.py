@@ -300,6 +300,8 @@ class CORSRequestHandler(SimpleHTTPRequestHandler):
             r.append("</tr>")
 
         for file_info in file_list:
+            if file_info['name'].startswith('.'):
+                continue
             r.append("<tr>")
             r.append(
                 f'<td><a href="{urllib.parse.quote(file_info["name"], errors="surrogatepass")}">{html.escape(file_info["name"])}</a></td>'
