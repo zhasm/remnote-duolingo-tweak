@@ -14,6 +14,7 @@ import sys
 import html
 from datetime import datetime
 import argparse
+import tempfile # Added: 导入 tempfile 模块
 
 VERBOSE = False  # Added global variable
 REMOTE_SERVER = "https://pub-c6b11003307646e98afc7540d5f09c41.r2.dev"
@@ -191,7 +192,10 @@ class CORSRequestHandler(SimpleHTTPRequestHandler):
                 )
                 return False
             _in_progress.add(remote_url)
+
         last_exc = None
+        temp_file_path = None # 用于存储临时文件路径，以便在 finally 块中清理
+
         try:
             ua = (
                 "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
@@ -199,19 +203,26 @@ class CORSRequestHandler(SimpleHTTPRequestHandler):
             )
             req = urllib.request.Request(remote_url, headers={"User-Agent": ua})
 
+            # 确保目标目录存在
+            os.makedirs(os.path.dirname(local_path), exist_ok=True)
+
             for attempt in range(1, retries + 1):
                 try:
-                    with urllib.request.urlopen(req, timeout=30) as resp:
-                        data = resp.read()
-                    os.makedirs(os.path.dirname(local_path), exist_ok=True)
-                    with open(local_path, "wb") as f:
-                        f.write(data)
+                    # 创建一个临时文件，位于目标文件所在的目录，以确保 os.rename 的原子性
+                    with tempfile.NamedTemporaryFile(delete=False, dir=os.path.dirname(local_path), suffix=".tmp") as temp_f:
+                        temp_file_path = temp_f.name # 记录临时文件路径
+                        with urllib.request.urlopen(req, timeout=30) as resp:
+                            data = resp.read()
+                        temp_f.write(data) # 将数据写入临时文件
+
+                    # 下载成功并写入临时文件后，原子性地重命名到最终路径
+                    os.rename(temp_file_path, local_path)
                     print(
                         green(
                             f"[{date_str()}][{current_pid}][CORS] Saved: {local_path} (attempt {attempt})"
                         )
                     )
-                    return True
+                    return True # 成功，退出函数
                 except Exception as e:
                     last_exc = e
                     print(
@@ -220,16 +231,23 @@ class CORSRequestHandler(SimpleHTTPRequestHandler):
                             f"attempt: [{attempt}] failed: [{e}]"
                         )
                     )
+                    # 如果当前尝试失败，清理可能存在的临时文件
+                    if temp_file_path and os.path.exists(temp_file_path):
+                        os.remove(temp_file_path)
+                        temp_file_path = None # 重置，以便下一次尝试创建新的临时文件
                     if attempt < retries:
                         print(
                             f"[{date_str()}][{current_pid}][CORS] Retrying in {delay} seconds..."
                         )
                         time.sleep(delay)
-            # If we reach here, all attempts failed
+            # 如果循环结束，表示所有尝试都失败了
             raise last_exc
         finally:
             with _in_progress_lock:
                 _in_progress.discard(remote_url)
+            # 确保在任何情况下（包括未捕获的异常）临时文件都被清理
+            if temp_file_path and os.path.exists(temp_file_path):
+                os.remove(temp_file_path)
 
     def list_directory(self, path):
         """Override to include directory summary at the top with nginx-style formatting"""
