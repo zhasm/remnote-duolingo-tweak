@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Audio Control Highlighter and Replay [remnote]
 // @namespace    http://tampermonkey.net/
-// @version      1.007-20251001-1033
+// @version      1.008-20251006-1048
 // @description  Highlights audio controls and buttons, adds customizable
 // @author       Me
 // @match        https://www.remnote.com/*
@@ -12,7 +12,7 @@
 // @grant        GM_registerMenuCommand
 // ==/UserScript==
 // 20250825-0902: add Ctrl+I to press ignore button
-// 20251001-1024: add ctrl+e to enter edit mode.
+// 20251006-1048: add Cmd+e to enter edit mode.
 
 (function () {
   'use strict';
@@ -307,7 +307,7 @@
       // Ctrl/Cmd + E while textarea focused:
       // 1) blur the textarea, 2) wait 50ms, 3) synthesize a single 'e' character
       // Delegate detailed behavior to helper for maintainability
-      if ((event.ctrlKey || event.metaKey) && event.key && event.key.toLowerCase() === 'e') {
+      if (event.metaKey && event.key && event.key.toLowerCase() === 'e') {
         handleCtrlEInTextarea(textarea, event);
         return;
       }
