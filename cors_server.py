@@ -18,6 +18,29 @@ import argparse
 VERBOSE = False  # Added global variable
 REMOTE_SERVER = "https://pub-c6b11003307646e98afc7540d5f09c41.r2.dev"
 
+# Precompile the mp3 filename pattern (32 hex chars + .mp3) for reuse
+MP3_RE = re.compile(r'^/[A-Fa-f0-9]{32}\.mp3$', re.IGNORECASE)
+
+
+def is_mp3_blob_path(path_or_url: str) -> bool:
+    """Return True if the given path or URL matches the 32-hex .mp3 pattern.
+
+    Accepts either a raw path like '/abcd...1234.mp3' or a full URL
+    like 'https://example.com/abcd...1234.mp3'.
+    """
+    if not path_or_url:
+        return False
+    elif path_or_url == '/':
+        return True
+    # If it's a URL, extract the path portion; urlparse will also work with
+    # plain paths and return an empty scheme/netloc.
+    try:
+        parsed = urlparse(path_or_url)
+        path = parsed.path
+    except Exception:
+        path = path_or_url
+    return bool(MP3_RE.match(path))
+
 # Try regular import first, fall back to loading the local `colors.py`
 try:
     from colors import magenta, red, green
@@ -70,10 +93,14 @@ class CORSRequestHandler(SimpleHTTPRequestHandler):
         # Only attempt to serve; fetching should be initiated by HEAD handler
         parsed = urlparse(self.path)
         path_only = parsed.path
-        if not re.search(r"/[a-f0-9]{32}\.mp3$", path_only):
+        # Only handle remote-fetch logic for 32-hex mp3 filenames; otherwise
+        # delegate to the default SimpleHTTPRequestHandler behavior.
+        if not is_mp3_blob_path(path_only):
             print(
-                f"[{date_str()}][{current_pid}][CORS] GET: path does not match pattern, serving directly: {path_only}"
+                f"[{date_str()}][{current_pid}][CORS] GET: path does not match 32-hex mp3 pattern, returning 404: {path_only}"
             )
+            self.send_error(404, "Not Found")
+            return
         elif os.path.exists(local_path):
             print(
                 magenta(
@@ -90,15 +117,26 @@ class CORSRequestHandler(SimpleHTTPRequestHandler):
         super().do_GET()
 
     def do_HEAD(self):
+
+        # local_path = self.translate_path(self.path)
+        # print(f"local path to find: {local_path} ")
+        # Only attempt remote fetch for files matching 32 hex chars + .mp3
+        parsed = urlparse(self.path)
+        path_only = parsed.path
+        if not is_mp3_blob_path(path_only):
+            print(
+                f"[{date_str()}][{current_pid}][CORS] HEAD: path does not match 32-hex mp3 pattern, returning 404: {path_only}"
+            )
+            self.send_error(404, "Not Found")
+            return
+
         print(f"[{date_str()}][{current_pid}][CORS] HEAD {self.path}")
         local_path = self.translate_path(self.path)
-        print(f"local path to find: {local_path} ")
-        # Only attempt remote fetch for files matching 32 hex chars + .mp3
         if not os.path.exists(local_path):  # and self.path.endswith('.mp3'):
             remote_url = REMOTE_SERVER + self.path
             print(
                 magenta(
-                    f"[{date_str()}][{current_pid}][CORS] Missing locally, fetching: {remote_url}"
+                    f"[{date_str()}][{current_pid}][CORS] HEAD: Missing locally, fetching: {remote_url}"
                 )
             )
             # Start background fetch so HEAD responses don't block waiting for remote
@@ -137,7 +175,7 @@ class CORSRequestHandler(SimpleHTTPRequestHandler):
         Writes the fetched bytes to local_path on success.
         """
         # Validate path pattern first to avoid locking for irrelevant URLs
-        if not re.search(r"/[a-f0-9]{32}\.mp3$", remote_url):
+        if not is_mp3_blob_path(remote_url):
             print(
                 f"[{date_str()}][{current_pid}][CORS] Path does not match expected pattern, skipping remote fetch: {remote_url}"
             )
@@ -365,7 +403,7 @@ def init_cert():
             with open("/tmp/cors_server.pid", "w") as f:
                 f.write(str(os.getpid()))
 
-    # Start the task in a new thread
+    # Start the task in a new thread 
     thread = threading.Thread(target=task)
     thread.start()
 
