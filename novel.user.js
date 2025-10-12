@@ -1,10 +1,11 @@
 // ==UserScript==
-// @name         click infor [remnote]
+// @name         Novel Paing
 // @namespace    http://tampermonkey.net/
-// @version      1.003-20250928-1050
+// @version      1.001-20251012-1118
 // @description  Highlights audio controls and buttons, adds customizable
 // @author       Me
-// @match        https://www.remnote.com/*
+// @match        https://m.shuhaige.net/*
+// @match        https://www.69shuba.com/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=remnote.com
 // @grant        GM_getValue
 // @grant        GM_setValue
@@ -143,6 +144,36 @@
     const PAGING_TXT_PREV = ['上一页', '上一章'];
     const PAGING_TXT_NEXT = ['下一页', '下一章'];
 
+    let loadingOverlay = null;
+
+    function prepareLoadingIndicator() {
+        loadingOverlay = document.createElement('div');
+        loadingOverlay.style.position = 'fixed';
+        loadingOverlay.style.top = '0';
+        loadingOverlay.style.left = '0';
+        loadingOverlay.style.width = '100%';
+        loadingOverlay.style.height = '100%';
+        loadingOverlay.style.backgroundColor = 'rgba(255, 255, 255, 0.8)';
+        loadingOverlay.style.zIndex = '10000';
+        loadingOverlay.style.display = 'flex';
+        loadingOverlay.style.justifyContent = 'center';
+        loadingOverlay.style.alignItems = 'center';
+
+        const loadingGif = document.createElement('img');
+        loadingGif.src =
+            'https://s3-img.meituan.net/v1/mss_3d027b52ec5a4d589e68050845611e68/ff/n0/0p/6s/ms_242013.gif';
+        loadingGif.style.maxWidth = '100px';
+        loadingGif.style.maxHeight = '100px';
+
+        loadingOverlay.appendChild(loadingGif);
+    }
+
+    function showLoadingIndicator() {
+        if (loadingOverlay) {
+            document.body.appendChild(loadingOverlay);
+        }
+    }
+
     function Paging() {
         document.addEventListener('keydown', function (event) {
             let targetText;
@@ -158,7 +189,10 @@
                 const elements = document.querySelectorAll(selector);
                 for (const el of elements) {
                     if (targetText.includes(el.textContent.trim())) {
-                        el.click();
+                        showLoadingIndicator();
+                        // Click after a short delay to allow the indicator to appear
+                        setTimeout(() => el.click(), 50);
+
                         return; // Exit after finding and clicking the first match
                     }
                 }
@@ -264,6 +298,7 @@
         deleteParagraphsContainingKeywords();
         scanPage();
         enableMouseSelection();
+        prepareLoadingIndicator();
         Paging();
         highlightLastLineOnSpaceScroll();
     }
