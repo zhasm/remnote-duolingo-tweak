@@ -139,6 +139,122 @@
         body.classList.remove('no-selection'); // Remove any custom no-selection class if applied
     }
 
+    const PAGING_ELEMENTS = ['div.pager a'];
+    const PAGING_TXT_PREV = ['上一页', '上一章'];
+    const PAGING_TXT_NEXT = ['下一页', '下一章'];
+
+    function Paging() {
+        document.addEventListener('keydown', function (event) {
+            let targetText;
+            if (event.key === 'ArrowLeft') {
+                targetText = PAGING_TXT_PREV;
+            } else if (event.key === 'ArrowRight') {
+                targetText = PAGING_TXT_NEXT;
+            } else {
+                return;
+            }
+
+            for (const selector of PAGING_ELEMENTS) {
+                const elements = document.querySelectorAll(selector);
+                for (const el of elements) {
+                    if (targetText.includes(el.textContent.trim())) {
+                        el.click();
+                        return; // Exit after finding and clicking the first match
+                    }
+                }
+            }
+        });
+    }
+
+    function highlightLastLineOnSpaceScroll() {
+        document.addEventListener('keydown', event => {
+            const isScrollingDown =
+                (event.key === ' ' && !event.shiftKey) ||
+                event.key === 'PageDown';
+            const isScrollingUp =
+                (event.key === ' ' && event.shiftKey) || event.key === 'PageUp';
+
+            if (isScrollingDown || isScrollingUp) {
+                let elementToHighlight = null;
+                const x = window.innerWidth / 2;
+
+                if (isScrollingDown) {
+                    // Scan upwards from the bottom to find the last visible element
+                    for (let y = window.innerHeight - 5; y > 0; y -= 15) {
+                        const elements = document.elementsFromPoint(x, y);
+                        const candidate = elements.find(
+                            el =>
+                                el.textContent.trim().length > 0 &&
+                                el.clientHeight < window.innerHeight * 0.8 &&
+                                el.tagName.toLowerCase() !== 'body' &&
+                                el.tagName.toLowerCase() !== 'html'
+                        );
+                        if (candidate) {
+                            elementToHighlight = candidate;
+                            break;
+                        }
+                    }
+                } else {
+                    // isScrollingUp: Scan downwards from the top to find the first visible element
+                    for (let y = 5; y < window.innerHeight; y += 15) {
+                        const elements = document.elementsFromPoint(x, y);
+                        const candidate = elements.find(
+                            el =>
+                                el.textContent.trim().length > 0 &&
+                                el.clientHeight < window.innerHeight * 0.8 &&
+                                el.tagName.toLowerCase() !== 'body' &&
+                                el.tagName.toLowerCase() !== 'html'
+                        );
+                        if (candidate) {
+                            elementToHighlight = candidate;
+                            break;
+                        }
+                    }
+                }
+
+                if (elementToHighlight) {
+                    const originalBg = elementToHighlight.style.backgroundColor;
+                    const originalTransition =
+                        elementToHighlight.style.transition;
+
+                    // Apply highlight with a quick fade-in
+                    elementToHighlight.style.transition =
+                        'background-color 0.2s ease-in';
+                    elementToHighlight.style.backgroundColor =
+                        'rgba(255, 255, 0, 0.4)';
+
+                    // Schedule fade-out
+                    setTimeout(() => {
+                        elementToHighlight.style.transition =
+                            'background-color 2s ease-out';
+                        elementToHighlight.style.backgroundColor = originalBg;
+
+                        // Clean up transition style after fade-out
+                        setTimeout(() => {
+                            // Only reset transition if it hasn't been changed by something else
+                            if (
+                                elementToHighlight.style.transition.includes(
+                                    '3s'
+                                )
+                            ) {
+                                elementToHighlight.style.transition =
+                                    originalTransition;
+                            }
+                        }, 3000);
+                    }, 500); // Start fade-out after 500ms
+                }
+
+                // After the default scroll, adjust the view
+                setTimeout(() => {
+                    if (isScrollingDown) {
+                        window.scrollBy(0, -40); // Scroll up
+                    } else {
+                        window.scrollBy(0, 40); // Scroll down
+                    }
+                }, 50);
+            }
+        });
+    }
 
     function initialize() {
         // Inject styles first
@@ -148,6 +264,8 @@
         deleteParagraphsContainingKeywords();
         scanPage();
         enableMouseSelection();
+        Paging();
+        highlightLastLineOnSpaceScroll();
     }
 
     // ========================
