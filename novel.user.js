@@ -17,7 +17,11 @@
 
     const DEFAULT_KEYWORDS = ['shuhaige.net', '请点击下一页'];
     const DEFAULT_KEYWORD_CONTAINER = 'p';
-    const DEFAULT_ELEMENTS_TODELETE = ['div.tui'];
+    const DEFAULT_ELEMENTS_TODELETE = ['div.tui', 'div.foot', 'div#tuijian', 'div.bottom-ad2', 'div#baocuo', 'div.yuedutuijian',];
+
+    const PAGING_ELEMENTS = ['div.pager a', 'div.page1 a'];
+    const PAGING_TXT_PREV = ['上一页', '上一章'];
+    const PAGING_TXT_NEXT = ['下一页', '下一章'];
 
     // ========================
     const CONFIG = {
@@ -140,10 +144,6 @@
         body.classList.remove('no-selection'); // Remove any custom no-selection class if applied
     }
 
-    const PAGING_ELEMENTS = ['div.pager a'];
-    const PAGING_TXT_PREV = ['上一页', '上一章'];
-    const PAGING_TXT_NEXT = ['下一页', '下一章'];
-
     let loadingOverlay = null;
 
     function prepareLoadingIndicator() {
@@ -209,73 +209,95 @@
                 (event.key === ' ' && event.shiftKey) || event.key === 'PageUp';
 
             if (isScrollingDown || isScrollingUp) {
-                let elementToHighlight = null;
-                const x = window.innerWidth / 2;
+                let textNodeToHighlight = null;
+                let bestDistance = Infinity;
 
-                if (isScrollingDown) {
-                    // Scan upwards from the bottom to find the last visible element
-                    for (let y = window.innerHeight - 5; y > 0; y -= 15) {
-                        const elements = document.elementsFromPoint(x, y);
-                        const candidate = elements.find(
-                            el =>
-                                el.textContent.trim().length > 0 &&
-                                el.clientHeight < window.innerHeight * 0.8 &&
-                                el.tagName.toLowerCase() !== 'body' &&
-                                el.tagName.toLowerCase() !== 'html'
-                        );
-                        if (candidate) {
-                            elementToHighlight = candidate;
-                            break;
-                        }
+                const allTextNodes = [];
+                const walk = document.createTreeWalker(
+                    document.body,
+                    NodeFilter.SHOW_TEXT,
+                    null,
+                    false
+                );
+                let node;
+                while ((node = walk.nextNode())) {
+                    if (node.textContent.trim().length > 0) {
+                        allTextNodes.push(node);
                     }
-                } else {
-                    // isScrollingUp: Scan downwards from the top to find the first visible element
-                    for (let y = 5; y < window.innerHeight; y += 15) {
-                        const elements = document.elementsFromPoint(x, y);
-                        const candidate = elements.find(
-                            el =>
-                                el.textContent.trim().length > 0 &&
-                                el.clientHeight < window.innerHeight * 0.8 &&
-                                el.tagName.toLowerCase() !== 'body' &&
-                                el.tagName.toLowerCase() !== 'html'
-                        );
-                        if (candidate) {
-                            elementToHighlight = candidate;
-                            break;
+                }
+
+                const viewportTop = window.scrollY;
+                const viewportBottom = window.scrollY + window.innerHeight;
+
+                for (const textNode of allTextNodes) {
+                    const range = document.createRange();
+                    range.selectNodeContents(textNode);
+                    const rects = range.getClientRects();
+
+                    for (const rect of rects) {
+                        // Check if the rect is within the viewport
+                        const isVisible =
+                            rect.bottom > 0 &&
+                            rect.top < window.innerHeight &&
+                            rect.width > 0 &&
+                            rect.height > 0;
+
+                        if (isVisible) {
+                            if (isScrollingDown) {
+                                // Find the lowest visible line
+                                const distance = viewportBottom - rect.bottom;
+                                if (distance >= 0 && distance < bestDistance) {
+                                    bestDistance = distance;
+                                    textNodeToHighlight = textNode;
+                                }
+                            } else {
+                                // isScrollingUp: Find the highest visible line
+                                const distance = rect.top - viewportTop;
+                                if (distance >= 0 && distance < bestDistance) {
+                                    bestDistance = distance;
+                                    textNodeToHighlight = textNode;
+                                }
+                            }
                         }
                     }
                 }
 
-                if (elementToHighlight) {
-                    const originalBg = elementToHighlight.style.backgroundColor;
-                    const originalTransition =
-                        elementToHighlight.style.transition;
+                if (textNodeToHighlight) {
+                    const range = document.createRange();
+                    range.selectNodeContents(textNodeToHighlight);
+                    const rects = range.getClientRects();
 
-                    // Apply highlight with a quick fade-in
-                    elementToHighlight.style.transition =
-                        'background-color 0.2s ease-in';
-                    elementToHighlight.style.backgroundColor =
-                        'rgba(255, 255, 0, 0.4)';
+                    if (rects.length > 0) {
+                        const rect = rects[0];
+                        const highlightMarker = document.createElement('div');
+                        highlightMarker.style.position = 'absolute';
+                        highlightMarker.style.left = `${
+                            rect.left + window.scrollX
+                        }px`;
+                        highlightMarker.style.top = `${
+                            rect.top + window.scrollY
+                        }px`;
+                        highlightMarker.style.width = `${rect.width}px`;
+                        highlightMarker.style.height = `${rect.height}px`;
+                        highlightMarker.style.backgroundColor =
+                            'rgba(255, 255, 0, 0.4)';
+                        highlightMarker.style.zIndex = '9999';
+                        highlightMarker.style.pointerEvents = 'none';
+                        highlightMarker.style.transition =
+                            'opacity 2s ease-out 0.5s';
 
-                    // Schedule fade-out
-                    setTimeout(() => {
-                        elementToHighlight.style.transition =
-                            'background-color 2s ease-out';
-                        elementToHighlight.style.backgroundColor = originalBg;
+                        document.body.appendChild(highlightMarker);
 
-                        // Clean up transition style after fade-out
+                        // Trigger fade-out
                         setTimeout(() => {
-                            // Only reset transition if it hasn't been changed by something else
-                            if (
-                                elementToHighlight.style.transition.includes(
-                                    '3s'
-                                )
-                            ) {
-                                elementToHighlight.style.transition =
-                                    originalTransition;
-                            }
-                        }, 3000);
-                    }, 500); // Start fade-out after 500ms
+                            highlightMarker.style.opacity = '0';
+                        }, 500);
+
+                        // Remove from DOM after transition
+                        setTimeout(() => {
+                            highlightMarker.remove();
+                        }, 2500);
+                    }
                 }
 
                 // After the default scroll, adjust the view
