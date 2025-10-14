@@ -6,7 +6,6 @@
 // @author       Me
 // @match        https://m.shuhaige.net/*
 // @match        https://www.69shuba.com/*
-// @icon         https://www.google.com/s2/favicons?sz=64&domain=remnote.com
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_addStyle
