@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Novel Paing
 // @namespace    http://tampermonkey.net/
-// @version      1.001-20251012-1118
+// @version      1.002-20251114-1457
 // @description  Highlights audio controls and buttons, adds customizable
 // @author       Me
 // @match        https://m.shuhaige.net/*
@@ -10,17 +10,30 @@
 // @grant        GM_setValue
 // @grant        GM_addStyle
 // ==/UserScript==
+// 1.002-20251114-1457:
+// +fn: RemoveKeywordsInElements
 
 (function () {
     'use strict';
 
     const DEFAULT_KEYWORDS = ['shuhaige.net', '请点击下一页'];
     const DEFAULT_KEYWORD_CONTAINER = 'p';
-    const DEFAULT_ELEMENTS_TODELETE = ['div.tui', 'div.foot', 'div#tuijian', 'div.bottom-ad2', 'div#baocuo', 'div.yuedutuijian',];
+    const DEFAULT_ELEMENTS_TODELETE = [
+        'div.tui',
+        'div.foot',
+        'div#tuijian',
+        'div.bottom-ad2',
+        'div#baocuo',
+        'div.yuedutuijian',
+    ];
 
     const PAGING_ELEMENTS = ['div.pager a', 'div.page1 a'];
     const PAGING_TXT_PREV = ['上一页', '上一章'];
     const PAGING_TXT_NEXT = ['下一页', '下一章'];
+
+    //function RemoveKeywordsInElements(
+    const CERTAIN_KEYWORDS_TO_DELETE = [/[（(]?(本章完|求月票)[)）]?/];
+    const CERTAIN_ELEMENTS_TO_SCAN = ['div.txtnav']; // CSS selectors, e.g. ['p','.content']
 
     // ========================
     const CONFIG = {
@@ -311,12 +324,161 @@
         });
     }
 
+    // Add near top with other defaults
+    // const CERTAIN_KEYWORDS_TO_DELETE = ['（求月票）'];
+    // const CERTAIN_ELEMENTS_TO_SCAN = ['div.txtnav']; // CSS selectors, e.g. ['p','.content']
+
+    function RemoveKeywordsInElements(
+        selectors = CERTAIN_ELEMENTS_TO_SCAN,
+        keywords = CERTAIN_KEYWORDS_TO_DELETE
+    ) {
+        if (!selectors?.length || !keywords?.length) {
+            console.log('RemoveKeywordsInElements: nothing to do.');
+            return;
+        }
+
+        // Build combined regex parts and decide flags:
+        const parts = [];
+        let globalFlags = 'g';
+        let caseInsensitive = false;
+        for (const k of keywords) {
+            if (k instanceof RegExp) {
+                parts.push(k.source);
+                if (k.flags.includes('i')) caseInsensitive = true;
+            } else {
+                parts.push(String(k).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+            }
+        }
+        if (caseInsensitive) globalFlags += 'i';
+        const combinedRe = new RegExp(parts.join('|'), globalFlags);
+
+        const stats = {
+            scannedElements: 0,
+            changedTextNodes: 0,
+            removedParents: 0,
+            keywordCounts: keywords.map(k => ({ key: k, count: 0 })),
+        };
+
+        const incCountForMatch = matched => {
+            // find which keyword/regex matched and increment corresponding counter
+            for (let i = 0; i < keywords.length; i++) {
+                const k = keywords[i];
+                if (k instanceof RegExp) {
+                    // test with full-match of the matched substring against that regex
+                    if (
+                        new RegExp(
+                            `^(?:${k.source})$`,
+                            k.flags.replace('g', '')
+                        )
+                    ) {
+                        try {
+                            if (k.test(matched)) {
+                                stats.keywordCounts[i].count++;
+                                return;
+                            }
+                        } finally {
+                            // reset lastIndex for safety if regex is global
+                            if (k.global) k.lastIndex = 0;
+                        }
+                    }
+                } else {
+                    if (String(k).toLowerCase() === matched.toLowerCase()) {
+                        stats.keywordCounts[i].count++;
+                        return;
+                    }
+                }
+            }
+            // fallback: increment first (shouldn't normally happen)
+            stats.keywordCounts[0].count++;
+        };
+
+        selectors.forEach(sel => {
+            const roots = Array.from(document.querySelectorAll(sel));
+            stats.scannedElements += roots.length;
+
+            roots.forEach(root => {
+                const walker = document.createTreeWalker(
+                    root,
+                    NodeFilter.SHOW_TEXT,
+                    null,
+                    false
+                );
+                const parentsToRemove = new Set();
+                let node;
+                while ((node = walker.nextNode())) {
+                    const original = node.nodeValue;
+                    if (!original || !original.trim()) continue;
+
+                    // Count matches
+                    const rx = new RegExp(combinedRe.source, combinedRe.flags);
+                    let match;
+                    let found = false;
+                    while ((match = rx.exec(original)) !== null) {
+                        found = true;
+                        const matchedText = match[0];
+                        incCountForMatch(matchedText);
+                        // avoid infinite loop with zero-length matches
+                        if (match[0].length === 0) rx.lastIndex++;
+                    }
+
+                    if (!found) {
+                        // check exact-trim full-node equality for string keywords
+                        const trimmed = original.trim();
+                        const exactIndex = keywords.findIndex(
+                            k => !(k instanceof RegExp) && String(k) === trimmed
+                        );
+                        if (exactIndex !== -1) {
+                            const parent = node.parentElement;
+                            if (
+                                parent &&
+                                parent.textContent.trim() === trimmed
+                            ) {
+                                parentsToRemove.add(parent);
+                                stats.keywordCounts[exactIndex].count++;
+                                continue;
+                            }
+                            // else fall through to replace below
+                        } else {
+                            continue;
+                        }
+                    }
+
+                    // Remove matches from text node
+                    const modified = original.replace(combinedRe, '');
+                    if (modified !== original) {
+                        node.nodeValue = modified;
+                        stats.changedTextNodes += 1;
+                    }
+                }
+
+                parentsToRemove.forEach(el => {
+                    el.remove();
+                    stats.removedParents += 1;
+                });
+            });
+        });
+
+        // Format keywordCounts for logging
+        const counts = {};
+        stats.keywordCounts.forEach(k => {
+            counts[String(k.key)] = k.count;
+        });
+
+        console.log('RemoveKeywordsInElements: results:', {
+            scannedElements: stats.scannedElements,
+            changedTextNodes: stats.changedTextNodes,
+            removedParents: stats.removedParents,
+            keywordCounts: counts,
+        });
+    }
+
     function initialize() {
         // Inject styles first
         // Delete specified elements
         deleteElements();
         monitorDynamicElements();
         deleteParagraphsContainingKeywords();
+        RemoveKeywordsInElements();
         scanPage();
         enableMouseSelection();
         prepareLoadingIndicator();
