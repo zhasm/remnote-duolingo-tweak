@@ -1,20 +1,21 @@
 // ==UserScript==
 // @name         WNE Auto English
 // @namespace    http://tampermonkey.net/
-// @version      1.0.0.3.20251213-0952
+// @version      1.0.0.4.20251215-0838
 // @description  Auto-switch to English on WNE website
 // @author       Zhang
 
-// @match        https://usosweb.uw.edu.pl/*
 // @match        https://elearning.wne.uw.edu.pl/*
 // @match        https://login.uw.edu.pl/*
 // @match        https://mojekonto.uw.edu.pl/*
+// @match        https://usosweb.uw.edu.pl/*
+// @match        https://usosweb.wne.uw.edu.pl/*
 
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=edu.pl
 // @grant        none
 // ==/UserScript==
 
-(function () {
+(function() {
     'use strict';
 
     const langAttr = document.documentElement.getAttribute('lang');
