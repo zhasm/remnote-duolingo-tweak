@@ -15,9 +15,47 @@
 // @grant        none
 // ==/UserScript==
 
-(function() {
+(function () {
     'use strict';
 
+    /**
+     * Simulate mouse activity to keep login session alive
+     */
+    function simulateMouseActivity() {
+        // Generate random coordinates within the viewport
+        const x = Math.random() * window.innerWidth;
+        const y = Math.random() * window.innerHeight;
+
+        // Create a mousemove event
+        const mouseMoveEvent = new MouseEvent('mousemove', {
+            clientX: x,
+            clientY: y,
+            bubbles: true,
+            cancelable: true,
+        });
+
+        // Dispatch the mousemove event
+        document.dispatchEvent(mouseMoveEvent);
+
+        // Create a click event
+        const clickEvent = new MouseEvent('click', {
+            clientX: x,
+            clientY: y,
+            bubbles: true,
+            cancelable: true,
+        });
+
+        // Dispatch the click event at the generated coordinates
+        document.dispatchEvent(clickEvent);
+
+        console.log('[WNE Auto English] Simulated mouse activity at (' + Math.round(x) + ', ' + Math.round(y) + ')');
+    }
+
+    // Keep login alive by simulating activity every Minutes_Alive minutes
+    const Minutes_Alive = 5;
+    const activityInterval = Minutes_Alive * 60 * 1000; // 10 minutes
+    setInterval(simulateMouseActivity, activityInterval);
+    console.log('[WNE Auto English] Session keeper started - will simulate activity every ' + Minutes_Alive + ' minutes');
     const langAttr = document.documentElement.getAttribute('lang');
     console.log('[WNE Auto English] Current language:', langAttr);
 
