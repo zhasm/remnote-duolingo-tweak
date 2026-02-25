@@ -163,17 +163,18 @@
     const tbodies = document.querySelectorAll('tbody');
     tbodies.forEach(tbody => {
       const rows = tbody.querySelectorAll('tr');
-      rows.forEach((row, rowIndex) => {
+      rows.forEach((row) => {
         const cells = row.querySelectorAll('th, td');
-        cells.forEach(cell => {
+        cells.forEach((cell, cellIndex) => {
           const text = cell.textContent.trim();
 
           // Use map for direct replacements
           if (pronounMap[text]) {
             cell.textContent = pronounMap[text];
           } else if (text === 'You') {
-            // Special handling for "You" based on row index
-            cell.textContent = rowIndex === 1 ? 'Ty' : 'Wy';
+            // Determine if this is singular or plural based on column position
+            // Columns 0-1 are singular (left side), columns 2-3 are plural (right side)
+            cell.textContent = cellIndex < 2 ? 'Ty' : 'Wy';
           }
         });
       });
