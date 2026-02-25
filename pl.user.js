@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Polish Grammar Table Copier [e-polish]
 // @namespace    http://tampermonkey.net/
-// @version      1.006-20250913-2000
+// @version      1.007-20260225-0920
 // @description  Highlights audio controls and buttons, adds customizable
 // @author       Me
 // @match        https://dictionary.e-polish.eu/*
@@ -14,109 +14,110 @@
 // feature:
 // hold option key and click title to copy audio mp3 link
 // hold option key and click gramma table to copy
+// replace pronouns in grammar table with Polish equivalents
 
-(function() {
-'use strict';
+(function () {
+  'use strict';
 
-const LOG_LEVELS = {
-  ERROR: 1,
-  WARN: 2,
-  INFO: 3,
-  DEBUG: 4
-};
+  const LOG_LEVELS = {
+    ERROR: 1,
+    WARN: 2,
+    INFO: 3,
+    DEBUG: 4
+  };
 
-let currentLogLevel = GM_getValue('logLevel', LOG_LEVELS.INFO);
+  let currentLogLevel = GM_getValue('logLevel', LOG_LEVELS.INFO);
 
-// Add logging utility function
-function log(level, ...args) {
-  if (level <= currentLogLevel) {
-    const levelName =
+  // Add logging utility function
+  function log(level, ...args) {
+    if (level <= currentLogLevel) {
+      const levelName =
         Object.keys(LOG_LEVELS).find(key => LOG_LEVELS[key] === level);
-    console.log(`[APH-MK][${levelName}]`, ...args);
-  }
-}
-
-async function copyToClipboard(text) {
-  try {
-    // Check current clipboard content first
-    const currentClipboard = await navigator.clipboard.readText();
-    if (currentClipboard === text) {
-      console.log('⚠ IGR DUP:', text);
-      return;
+      console.log(`[APH-MK][${levelName}]`, ...args);
     }
-
-    await navigator.clipboard.writeText(text);
-    console.log('✅✅ Text copied to clipboard:', text);
-  } catch (err) {
-    console.error('❌❌ Failed to copy:', err);
   }
-}
 
-function GrammarTableHandler() {
-  const selector = 'div[data-name="grammar"]';
-  const q = document.querySelector(selector);
+  async function copyToClipboard(text) {
+    try {
+      // Check current clipboard content first
+      const currentClipboard = await navigator.clipboard.readText();
+      if (currentClipboard === text) {
+        console.log('⚠ IGR DUP:', text);
+        return;
+      }
 
-  q.addEventListener('click', (event) => {
-    // Check if the Option key is held down
-    if (event.altKey) {
-      const lines = [];
-      const rows = q.querySelectorAll('tbody tr');
+      await navigator.clipboard.writeText(text);
+      console.log('✅✅ Text copied to clipboard:', text);
+    } catch (err) {
+      console.error('❌❌ Failed to copy:', err);
+    }
+  }
 
-      rows.forEach(row => {
-        const cells = row.querySelectorAll('td');
-        if (cells.length > 1) {
-          const caseName = cells[0].textContent.trim();
-          const forms =
+  function GrammarTableHandler() {
+    const selector = 'div[data-name="grammar"]';
+    const q = document.querySelector(selector);
+
+    q.addEventListener('click', (event) => {
+      // Check if the Option key is held down
+      if (event.altKey) {
+        const lines = [];
+        const rows = q.querySelectorAll('tbody tr');
+
+        rows.forEach(row => {
+          const cells = row.querySelectorAll('td');
+          if (cells.length > 1) {
+            const caseName = cells[0].textContent.trim();
+            const forms =
               Array.from(cells).slice(1).map(cell => cell.textContent.trim());
-          lines.push(`${caseName}: ${forms.join(', ')}`);
-        }
-      });
-
-      copyToClipboard(lines.join('\n'));
-      showNotification('Table has been copied to clipboard');
-    }
-  });
-}
-
-function InitClickAudioLink() {
-  const nodes = document.querySelectorAll('div.container h3');
-  nodes.forEach(node => {
-    const aNode = node.querySelector('a.hint-parent');
-    if (aNode) {
-      // Check if the click event is already bound
-      if (!node.dataset.bound) {
-        node.addEventListener('click', (event) => {
-          // Check if the Option key is held down
-          if (event.altKey) {
-            copyToClipboard(aNode.href);
-            showNotification(`Audio link ${aNode.href} has been copied to clipboard`);
+            lines.push(`${caseName}: ${forms.join(', ')}`);
           }
         });
-        // Mark this node as bound
-        node.dataset.bound = 'true';
-      }
-    }
-  });
-}
 
-function InitPopUpBlocker() {
-  const elementsToRemove = ['div#glossa-newsletter-popup', 'div#cookieMsgDiv'];
-  const intervalId = setInterval(() => {
-    elementsToRemove.forEach(selector => {
-      const element = document.querySelector(selector);
-      if (element) {
-        element.remove(); // Remove the dialog element
-        console.log(`${selector} has been removed.`);
+        copyToClipboard(lines.join('\n'));
+        showNotification('Table has been copied to clipboard');
       }
     });
-  }, 100);
-}
+  }
+
+  function InitClickAudioLink() {
+    const nodes = document.querySelectorAll('div.container h3');
+    nodes.forEach(node => {
+      const aNode = node.querySelector('a.hint-parent');
+      if (aNode) {
+        // Check if the click event is already bound
+        if (!node.dataset.bound) {
+          node.addEventListener('click', (event) => {
+            // Check if the Option key is held down
+            if (event.altKey) {
+              copyToClipboard(aNode.href);
+              showNotification(`Audio link ${aNode.href} has been copied to clipboard`);
+            }
+          });
+          // Mark this node as bound
+          node.dataset.bound = 'true';
+        }
+      }
+    });
+  }
+
+  function InitPopUpBlocker() {
+    const elementsToRemove = ['div#glossa-newsletter-popup', 'div#cookieMsgDiv'];
+    const intervalId = setInterval(() => {
+      elementsToRemove.forEach(selector => {
+        const element = document.querySelector(selector);
+        if (element) {
+          element.remove(); // Remove the dialog element
+          console.log(`${selector} has been removed.`);
+        }
+      });
+    }, 100);
+  }
 
 
-function showNotification(message) {
-  const notification = document.createElement('div');
-  notification.textContent = '📕 ' + message;
-  notification.style.cssText = `
+  function showNotification(message) {
+    const notification = document.createElement('div');
+    notification.textContent = '📕 ' + message;
+    notification.style.cssText = `
           position: fixed;
           top: 20px;
           right: 20px;
@@ -128,31 +129,67 @@ function showNotification(message) {
           opacity: 0;
           transition: opacity 0.3s ease-in-out;
       `;
-  document.body.appendChild(notification);
+    document.body.appendChild(notification);
 
-  // Fade in
-  setTimeout(() => {
-    notification.style.opacity = '1';
-  }, 10);
-
-  // Fade out and remove
-  setTimeout(() => {
-    notification.style.opacity = '0';
+    // Fade in
     setTimeout(() => {
-      document.body.removeChild(notification);
-    }, 300);
-  }, 2000);
-}
+      notification.style.opacity = '1';
+    }, 10);
 
-function InitTab() {
-  const grammarTab = document.querySelector('li[data-name="grammar"]');
-  const grammarLink = grammarTab.querySelector('a');
+    // Fade out and remove
+    setTimeout(() => {
+      notification.style.opacity = '0';
+      setTimeout(() => {
+        document.body.removeChild(notification);
+      }, 300);
+    }, 2000);
+  }
 
-  grammarLink.click();
-}
+  function PronounPreProcessor() {
+    const pronounMap = {
+      'I': 'Ja',
+      'He/She/It': 'On/Ona/Ono',
+      'He': 'On',
+      'She': 'Ona',
+      'It': 'Ono',
+      'We': 'My',
+      'They (masculine)/They (feminine)': 'Oni/One',
+      'They (masculine)': 'Oni',
+      'They (feminine)': 'One',
+      'She/It': 'Ona/Ono',
+    };
 
-InitTab();
-GrammarTableHandler();
-InitClickAudioLink();
-InitPopUpBlocker();
+    // Find all tbody elements in grammar tables
+    const tbodies = document.querySelectorAll('tbody');
+    tbodies.forEach(tbody => {
+      const rows = tbody.querySelectorAll('tr');
+      rows.forEach((row, rowIndex) => {
+        const cells = row.querySelectorAll('th, td');
+        cells.forEach(cell => {
+          const text = cell.textContent.trim();
+
+          // Use map for direct replacements
+          if (pronounMap[text]) {
+            cell.textContent = pronounMap[text];
+          } else if (text === 'You') {
+            // Special handling for "You" based on row index
+            cell.textContent = rowIndex === 1 ? 'Ty' : 'Wy';
+          }
+        });
+      });
+    });
+  }
+
+  function InitTab() {
+    const grammarTab = document.querySelector('li[data-name="grammar"]');
+    const grammarLink = grammarTab.querySelector('a');
+
+    grammarLink.click();
+  }
+
+  PronounPreProcessor();
+  InitTab();
+  GrammarTableHandler();
+  InitClickAudioLink();
+  InitPopUpBlocker();
 })();
